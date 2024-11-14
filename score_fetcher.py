@@ -19,12 +19,24 @@ def load_from_url(url, params=None):
         url = f'{url}?params={json.dumps(params)}'
     if debug: print("url: " + url)
     response = requests.get(url)
-    if debug: print("response.url: " + response.url)
     if response.status_code != 200:
         print(response.status_code, response.reason)
         return {}
     return response.json()
 
+
+def load_all_from_url(url, params:dict = {}):
+    # TODO: error handling
+    data = []
+    complete = False
+    params['_take'] = 100
+    params['_skip'] = 0
+    while not complete:
+        data += load_from_url(url, params)
+        params['_skip'] += params['_take']
+        if len(data) < params['_skip']: complete = True
+    return data
+    
 
 def load_data_incremental(filepath, base_api_url):
     time_fmt = "%a, %b %d %Y %H:%M:%S"
@@ -50,10 +62,10 @@ def load_data_incremental(filepath, base_api_url):
     curr_time = datetime.datetime.now()
     
     # query API for data updated since previous timestamp
-    params = None
+    params = {}
     if previous_search:
         params = {"updated_at": {"gt": str(prev_upd_at)}}
-    new_data = load_from_url(base_api_url, params)
+    new_data = load_all_from_url(base_api_url, params)
 
     # merge new data into existing
     ids_to_update = [entry['id'] for entry in new_data]
@@ -111,25 +123,20 @@ if __name__ == '__main__':
 
     start = datetime.date(year=2024, month=11, day=1)
     end = datetime.date(year=2024, month=11, day=13)
-    player = "thaya"
-    chart_ids = [str(x['id']) for x in charts if x['song_id'] in song_ids]
+    player = "Thaya"
+    chart_ids = [x['id'] for x in charts if x['song_id'] in song_ids]
     num_tries_to_count = 3
 
-    # player_scores_url = f'http://smx.573.no/api/scores?from={start}&to={end}&user={player}&chart_ids={','.join(chart_ids)}&asc=1'
     player_scores_url = 'http://api.smx.573.no/scores'
     query_params = {
         '_order': 'asc',
         '_sort': "created_at",
         'gamer.username': player,
-        'song.id': song_ids,
+        'chart.id': chart_ids,
         'created_at': {
             "gt": str(start),
             "lte": str(end)
         }
     }
-    # query_params = f'{{"_sort": "created_at", "_order": "asc", "gamer.username": "{player}", "song.id": [618], "created_at": {{"gt": "{str(start)}", "lte": "{str(end)}"}} }}'
     player_scores = load_from_url(player_scores_url, query_params)
-    trunc_player_scores = player_scores[:num_tries_to_count]
-    pp.pprint([_['score'] for _ in trunc_player_scores])
-
-    #pp.pprint(load_from_url('http://api.smx.573.no/scores?params={"gamer.username": "Auby", "score": {"gte": 99725, "lt": 100000}}'))
+    pp.pprint([_['score'] for _ in player_scores][:num_tries_to_count])
