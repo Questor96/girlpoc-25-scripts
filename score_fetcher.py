@@ -1,41 +1,90 @@
 import requests
 import datetime
+import json
 import pprint
+from urllib.parse import urlencode
+
+# file store info
+config_path = './config'
+data_path = './data'
 
 # lazy printer for debugging:)
 debug = True
 pp = pprint.PrettyPrinter(indent=2)
 
 
-def load_from_url(url):
+def load_from_url(url, params=None):
     # TODO: error handling
+    if params is not None:
+        url = f'{url}?params={json.dumps(params)}'
+    if debug: print("url: " + url)
     response = requests.get(url)
+    if debug: print("response.url: " + response.url)
     if response.status_code != 200:
         print(response.status_code, response.reason)
         return {}
     return response.json()
 
-# retrieve song library
-def load_songs():
-    # TODO: check for latest version?
-    url = 'http://smx.573.no/api/songs'
-    song_library_dict = load_from_url(url)
-    
-    if debug:
-        pp.pprint([x for x in song_library_dict if str(x['title']).lower() == "Definition of a Badboy".lower()])
-    # TODO: store to file?
-    return song_library_dict
 
-# retrieve chart library
-def load_charts():
-    # TODO: check for latest version?
-    url = 'http://smx.573.no/api/charts'
-    chart_library_dict = load_from_url(url)
+def load_data_incremental(filepath, base_api_url):
+    time_fmt = "%a, %b %d %Y %H:%M:%S"
+    upd_at_filepath = filepath + '_updated_at.txt'
+    data_filepath = filepath + '_data.json'
     
-    if debug:
-        pp.pprint([x for x in chart_library_dict if x['song_id'] == 618])
-    # TODO: store to file
-    return chart_library_dict
+    # get previous timestamp from file
+    try:
+        with open(upd_at_filepath, 'r') as upd_file:
+            prev_upd_at = datetime.datetime.strptime(upd_file.read(), time_fmt)
+            previous_search = True
+    except FileNotFoundError:
+        previous_search = False
+    
+    # get existing data from file
+    try:
+        with open(data_filepath, "r") as data_file:
+            data: list = json.load(data_file)
+    except FileNotFoundError:
+        data: list = []
+    
+    # grab current timestamp before beginning data operations
+    curr_time = datetime.datetime.now()
+    
+    # query API for data updated since previous timestamp
+    params = None
+    if previous_search:
+        params = {"updated_at": {"gt": str(prev_upd_at)}}
+    new_data = load_from_url(base_api_url, params)
+
+    # merge new data into existing
+    ids_to_update = [entry['id'] for entry in new_data]
+    data = [entry for entry in data if entry['id'] not in ids_to_update]
+    for entry in new_data:
+        data.append(entry)
+
+    # save data to file
+    with open(data_filepath, "w") as data_file:
+        json.dump(data, data_file)
+    
+    # save timestamp to file
+    with open(upd_at_filepath, "w") as upd_file:
+        upd_file.write(datetime.datetime.strftime(curr_time, time_fmt))
+
+    return data
+
+
+def load_songs():
+    filepath = data_path + '/songs'
+    url = 'http://api.smx.573.no/songs'
+    data = load_data_incremental(filepath, url)
+    return data
+
+
+def load_charts():
+    filepath = data_path + '/charts'
+    url = 'http://api.smx.573.no/charts'
+    data = load_data_incremental(filepath, url)
+    return data
+
 
 """
 Useful fields
@@ -49,8 +98,10 @@ charts.is_enabled - check this for valid officials
 charts.difficulty - block rating
 """
 if __name__ == '__main__':
-    charts = load_charts()
     songs = load_songs()
+    print(str(len(songs)) + " songs loaded")
+    charts = load_charts()
+    print(str(len(charts)) + " charts loaded")
 
     song_names = [
         "Definition of a Badboy"
@@ -63,8 +114,22 @@ if __name__ == '__main__':
     player = "thaya"
     chart_ids = [str(x['id']) for x in charts if x['song_id'] in song_ids]
     num_tries_to_count = 3
-    player_scores_url = f'http://smx.573.no/api/scores?from={start}&to={end}&user={player}&chart_ids={','.join(chart_ids)}&asc=1'
-    print(player_scores_url)
-    player_scores = load_from_url(player_scores_url)
+
+    # player_scores_url = f'http://smx.573.no/api/scores?from={start}&to={end}&user={player}&chart_ids={','.join(chart_ids)}&asc=1'
+    player_scores_url = 'http://api.smx.573.no/scores'
+    query_params = {
+        '_order': 'asc',
+        '_sort': "created_at",
+        'gamer.username': player,
+        'song.id': song_ids,
+        'created_at': {
+            "gt": str(start),
+            "lte": str(end)
+        }
+    }
+    # query_params = f'{{"_sort": "created_at", "_order": "asc", "gamer.username": "{player}", "song.id": [618], "created_at": {{"gt": "{str(start)}", "lte": "{str(end)}"}} }}'
+    player_scores = load_from_url(player_scores_url, query_params)
     trunc_player_scores = player_scores[:num_tries_to_count]
     pp.pprint([_['score'] for _ in trunc_player_scores])
+
+    #pp.pprint(load_from_url('http://api.smx.573.no/scores?params={"gamer.username": "Auby", "score": {"gte": 99725, "lt": 100000}}'))
