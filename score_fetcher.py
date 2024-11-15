@@ -1,3 +1,4 @@
+import asyncio
 import requests
 import datetime
 import json
@@ -13,7 +14,7 @@ debug = True
 pp = pprint.PrettyPrinter(indent=2)
 
 
-def load_from_url(url, params=None):
+async def load_from_url(url, params=None):
     # TODO: error handling
     if params is not None:
         url = f'{url}?params={json.dumps(params)}'
@@ -25,20 +26,19 @@ def load_from_url(url, params=None):
     return response.json()
 
 
-def load_all_from_url(url, params:dict = {}):
-    # TODO: error handling
+async def load_all_from_url(url, params:dict = {}):
     data = []
     complete = False
     params['_take'] = 100
     params['_skip'] = 0
     while not complete:
-        data += load_from_url(url, params)
+        data += await load_from_url(url, params)
         params['_skip'] += params['_take']
         if len(data) < params['_skip']: complete = True
     return data
     
 
-def load_data_incremental(filepath, base_api_url):
+async def load_data_incremental(filepath, base_api_url):
     time_fmt = "%a, %b %d %Y %H:%M:%S"
     upd_at_filepath = filepath + '_updated_at.txt'
     data_filepath = filepath + '_data.json'
@@ -65,7 +65,7 @@ def load_data_incremental(filepath, base_api_url):
     params = {}
     if previous_search:
         params = {"updated_at": {"gt": str(prev_upd_at)}}
-    new_data = load_all_from_url(base_api_url, params)
+    new_data = await load_all_from_url(base_api_url, params)
 
     # merge new data into existing
     ids_to_update = [entry['id'] for entry in new_data]
@@ -84,17 +84,17 @@ def load_data_incremental(filepath, base_api_url):
     return data
 
 
-def load_songs():
+async def load_songs():
     filepath = data_path + '/songs'
     url = 'http://api.smx.573.no/songs'
-    data = load_data_incremental(filepath, url)
+    data = await load_data_incremental(filepath, url)
     return data
 
 
-def load_charts():
+async def load_charts():
     filepath = data_path + '/charts'
     url = 'http://api.smx.573.no/charts'
-    data = load_data_incremental(filepath, url)
+    data = await load_data_incremental(filepath, url)
     return data
 
 
@@ -110,9 +110,15 @@ charts.is_enabled - check this for valid officials
 charts.difficulty - block rating
 """
 if __name__ == '__main__':
-    songs = load_songs()
+    # grab data asynchronously
+    loop = asyncio.get_event_loop()
+    coroutines = [
+        load_songs(),
+        load_charts()
+    ]
+    [songs, charts] = loop.run_until_complete(asyncio.gather(*coroutines))
+    
     print(str(len(songs)) + " songs loaded")
-    charts = load_charts()
     print(str(len(charts)) + " charts loaded")
 
     song_names = [
@@ -138,5 +144,10 @@ if __name__ == '__main__':
             "lte": str(end)
         }
     }
-    player_scores = load_from_url(player_scores_url, query_params)
+
+    # loop already open?
+    coroutines = [load_from_url(player_scores_url, query_params)]
+    [player_scores] = loop.run_until_complete(asyncio.gather(*coroutines))
     pp.pprint([_['score'] for _ in player_scores][:num_tries_to_count])
+
+    loop.close()
