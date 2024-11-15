@@ -98,6 +98,41 @@ async def load_charts():
     return data
 
 
+# generic score loading
+async def load_scores(params):
+    url = 'http://api.smx.573.no/scores'
+    data = await load_all_from_url(url, params)
+    return data
+
+
+# specific support for certain fields
+async def load_player_scores(
+        *,
+        player_name:str,
+        start:datetime = None,
+        end:datetime = None,
+        chart_ids:list[int] = None,
+        sort_field:str = None,
+        order:str = None
+    ):
+    params = {'gamer.username': player_name}
+    if start is not None or end is not None:
+        params['created_at'] = {}
+    update_dict_if_not_null(params['created_at'], 'gte', str(start))
+    update_dict_if_not_null(params['created_at'], 'lte', str(end))
+    update_dict_if_not_null(params, 'chart.id', chart_ids)
+    update_dict_if_not_null(params, '_sort', sort_field)
+    update_dict_if_not_null(params, '_order', order)
+    data = await load_scores(params)
+    return data
+
+
+# clever idea from google genAI overview
+def update_dict_if_not_null(dict, key, value):
+    if value is not None:
+        dict[key] = value
+
+
 """
 Useful fields
 
@@ -110,44 +145,69 @@ charts.is_enabled - check this for valid officials
 charts.difficulty - block rating
 """
 if __name__ == '__main__':
+    # initialize event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
     # grab data asynchronously
-    loop = asyncio.get_event_loop()
     coroutines = [
         load_songs(),
         load_charts()
     ]
     [songs, charts] = loop.run_until_complete(asyncio.gather(*coroutines))
+    if debug:
+        print(str(len(songs)) + " songs loaded")
+        print(str(len(charts)) + " charts loaded")
     
-    print(str(len(songs)) + " songs loaded")
-    print(str(len(charts)) + " charts loaded")
 
-    song_names = [
-        "Definition of a Badboy"
+    # load event configuration, pull from file eventually
+    players = [
+        "Thaya",
+        "Hamaon"
     ]
-    song_names = [x.lower() for x in song_names]
-    song_ids = [x['id'] for x in songs if str(x['title']).lower() in song_names]
-
+    song_info = [
+        {"title": "Stars", "difficulty": 24},
+        {"title": "Ring the Alarm", "difficulty": 22},
+        {"title": "Do My Thing", "difficulty": 20}
+    ]
     start = datetime.date(year=2024, month=11, day=1)
     end = datetime.date(year=2024, month=11, day=13)
-    player = "Thaya"
-    chart_ids = [x['id'] for x in charts if x['song_id'] in song_ids]
     num_tries_to_count = 3
 
-    player_scores_url = 'http://api.smx.573.no/scores'
-    query_params = {
-        '_order': 'asc',
-        '_sort': "created_at",
-        'gamer.username': player,
-        'chart.id': chart_ids,
-        'created_at': {
-            "gt": str(start),
-            "lte": str(end)
-        }
-    }
+    # these suck lmao, how do I write them more effectively
+    for song in song_info:
+        for s in songs:
+            if song['title'].casefold() == s['title'].casefold():
+                song['id'] = s['id']
+                break
 
+    chart_ids = []
+    for song in song_info:
+        for chart in charts:
+            if song['id'] == chart['song_id'] and song['difficulty'] == chart['difficulty']:
+                chart_ids.append(chart['id'])
+                break
+
+    
+    # load score data asynchronously
     # loop already open?
-    coroutines = [load_from_url(player_scores_url, query_params)]
-    [player_scores] = loop.run_until_complete(asyncio.gather(*coroutines))
-    pp.pprint([_['score'] for _ in player_scores][:num_tries_to_count])
+    coroutines = []
+    for player in players:
+        for chart_id in chart_ids:
+            coroutines.append(
+                load_player_scores(
+                    player_name=player,
+                    start=start,
+                    end=end,
+                    chart_ids=chart_id,
+                    sort_field='created_at',
+                    order='asc',
+                )
+            )
+    all_results = loop.run_until_complete(asyncio.gather(*coroutines))
+    for result in all_results:
+        for score in result[:num_tries_to_count]:
+            print(' '.join([score['gamer']['username'], score['song']['title'], str(score['score'])]))
 
+    # clean up event loop
     loop.close()
