@@ -14,14 +14,6 @@ debug = True
 pp = pprint.PrettyPrinter(indent=2)
 
 
-async def load_from_url(url, params=None):
-    # fork behavior if _take is set
-    if params.get('_take', None) is not None:
-        return await _load_from_url(url, params)
-    else:
-        return await _load_all_from_url(url, params)
-
-
 async def _load_from_url(url, params=None):
     # TODO: error handling
     if params is not None:
@@ -34,15 +26,28 @@ async def _load_from_url(url, params=None):
     return response.json()
 
 
-async def _load_all_from_url(url, params:dict = {}):
+async def load_from_url(url, params:dict = {}):
     data = []
     complete = False
-    params['_take'] = 100
+    initial_take = params.get('_take', None)
+    params['_take'] = initial_take if initial_take is not None and initial_take < 100 else 100  # max _take of 100, per API spec
     params['_skip'] = 0
     while not complete:
+        # grab next set of data
         data += await _load_from_url(url, params)
+        # update count of records searched
         params['_skip'] += params['_take']
-        if len(data) < params['_skip']: complete = True
+        
+        # update take param to not excede initial_take, if necessary
+        if initial_take is not None:
+            params['_take'] = min(initial_take - params['_skip'], 100)
+
+        # exit conditions
+        if len(data) < params['_skip']:  # reached end of data, quit
+            complete = True
+        if len(data) == initial_take:  # reached requisite # of entries, quit
+            complete = True
+        
     return data
     
 
@@ -127,8 +132,8 @@ async def load_player_scores(
     params = {'gamer.username': player_name}
     if start is not None or end is not None:
         params['created_at'] = {}
-    update_dict_if_not_null(params['created_at'], 'gte', str(start))
-    update_dict_if_not_null(params['created_at'], 'lte', str(end))
+        update_dict_if_not_null(params['created_at'], 'gte', str(start))
+        update_dict_if_not_null(params['created_at'], 'lte', str(end))
     update_dict_if_not_null(params, 'chart.id', chart_ids)
     update_dict_if_not_null(params, '_sort', sort_field)
     update_dict_if_not_null(params, '_order', order)
