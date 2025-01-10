@@ -43,6 +43,8 @@ class ScoreFetcher():
     async def _load_from_url(self, url, params=None):
         # TODO: error handling
         if params is not None:
+            if self.debug:
+                pp.pprint(params)
             url = f'{url}?params={json.dumps(params)}'
         if self.debug: print("url: " + url)
         response = requests.get(url)
@@ -151,6 +153,7 @@ class ScoreFetcher():
             player_name:str,
             start:datetime = None,
             end:datetime = None,
+            score_gte:int = None,
             difficulty:list[int] = None,
             difficulty_name:str = None,
             chart_ids:list[int] = None,
@@ -163,6 +166,9 @@ class ScoreFetcher():
             params['created_at'] = {}
             if start: self.update_dict_if_not_null(params['created_at'], 'gte', str(start))
             if end: self.update_dict_if_not_null(params['created_at'], 'lte', str(end))
+        if score_gte is not None:
+            params['score'] = {}
+            if score_gte: self.update_dict_if_not_null(params['score'], 'gte', score_gte)
         self.update_dict_if_not_null(params, 'chart.difficulty', difficulty)
         self.update_dict_if_not_null(params, 'chart.difficulty_name', difficulty_name)
         self.update_dict_if_not_null(params, 'chart.id', chart_ids)
