@@ -1,2 +1,9 @@
+# Virtual Environment
 .venv
+
+# Local data caching
 data/*
+
+# GCS Authorization
+gcs_client_secrets.json
+token.json
