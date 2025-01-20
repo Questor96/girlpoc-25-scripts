@@ -191,15 +191,16 @@ class ScoreFetcher():
 
     def filter_charts_by_song(self, song_info):
         for song in song_info:
-            for s in sf.songs:
+            for s in self.songs:
                 if song['title'].casefold() == s['title'].casefold():
                     song['id'] = s['id']
                     break
         chart_ids = []
         for song in song_info:
-            for chart in sf.charts:
+            for chart in self.charts:
                 if song['id'] == chart['song_id'] and song['difficulty'] == chart['difficulty']:
                     chart_ids.append(chart['id'])
+                    song['chart_id'] = chart['id']
                     break
         return chart_ids
 

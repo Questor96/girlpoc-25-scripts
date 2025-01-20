@@ -1,10 +1,13 @@
 from score_fetcher import ScoreFetcher
 import json
 import datetime
+import pprint
 
 sf = ScoreFetcher()
 sf.debug = False
 
+# lazy printer for debugging:)
+pp = pprint.PrettyPrinter(indent=2)
 
 class Player:
     def __init__(self, name: str, hard: bool, intro_wild: bool):
@@ -15,7 +18,7 @@ class Player:
             "wild": True,  # always eligible
         }
         self.hard_scores = {}
-        self.intro_to_wild_scores = {}
+        self.intro_wild_scores = {}
         self.wild_scores = {}
     
     @property
@@ -51,7 +54,7 @@ def get_event_scores(
         sort_field="created_at",
         order="asc"
     )
-    result = sf.exec_load_player_scores(search)
+    [result] = sf.exec_load_player_scores([search])
     scores = {
         chart_id: []
         for chart_id in chart_ids
@@ -64,6 +67,13 @@ def get_event_scores(
             continue
     return scores
 
+def get_song_title_by_chart_id(song_info_aug, chart_id):
+    [song_title] = [
+        song["title"]
+        for song in song_info_aug
+        if song["chart_id"] == chart_id
+    ]
+    return song_title
 
 if __name__ == "__main__":
     event_folder = './girlpoc-25-singles/'
@@ -131,7 +141,7 @@ if __name__ == "__main__":
                 end_date=end_date,
                 attempts_to_count=attempts_to_count
             )
-            player.intro_to_wild_scores = scores
+            player.intro_wild_scores = scores
 
         if player.can_compete_wild:
             scores = get_event_scores(
@@ -142,3 +152,44 @@ if __name__ == "__main__":
                 attempts_to_count=attempts_to_count
             )
             player.wild_scores = scores
+
+    # print max score per chart
+    print("HARD")
+    for player in players:
+        if not player.can_compete_hard:
+            continue
+        hard_scores = player.hard_scores
+        for chart_id in hard_charts:
+            max_score=0
+            for score in hard_scores.get(chart_id, []):
+                if score > max_score:
+                    max_score = score
+            song_title = get_song_title_by_chart_id(hard_gauntlet, chart_id)
+            print("\t".join([player.name, song_title, str(max_score)]))
+        print()
+
+    print("INTRO TO WILD")
+    for player in players:
+        if not player.can_compete_intro_wild:
+            continue
+        intro_wild_scores = player.intro_wild_scores
+        for chart_id in intro_wild_charts:
+            max_score=0
+            for score in intro_wild_scores.get(chart_id, []):
+                if score > max_score:
+                    max_score = score
+            song_title = get_song_title_by_chart_id(intro_wild_gauntlet, chart_id)
+            print("\t".join([player.name, song_title, str(max_score)]))
+        print()
+    
+    print("WILD")
+    for player in players:
+        wild_scores = player.wild_scores
+        for chart_id in wild_charts:
+            max_score=0
+            for score in wild_scores.get(chart_id, []):
+                if score > max_score:
+                    max_score = score
+            song_title = get_song_title_by_chart_id(wild_gauntlet, chart_id)
+            print("\t".join([player.name, song_title, str(max_score)]))
+        print()
