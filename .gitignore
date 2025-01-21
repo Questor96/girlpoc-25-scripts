@@ -6,4 +6,6 @@ data/*
 
 # GCS Authorization
 gcs_client_secrets.json
-token.json
+
+# results reporting
+singles_results_spreadsheet_key.json

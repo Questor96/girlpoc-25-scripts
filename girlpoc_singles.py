@@ -2,9 +2,13 @@ from score_fetcher import ScoreFetcher
 import json
 import datetime
 import pprint
+from gcs.google_auth import gspread_auth
+from gspread.cell import Cell
 
+
+debug = False
 sf = ScoreFetcher()
-sf.debug = False
+sf.debug = debug
 
 # lazy printer for debugging:)
 pp = pprint.PrettyPrinter(indent=2)
@@ -32,6 +36,49 @@ class Player:
     @property
     def can_compete_wild(self) -> bool:
         return self.eligibility['wild']
+    
+    @property
+    def has_hard_scores(self) -> bool:
+        return self._count_nonzero_scores(self.hard_scores) > 0
+    
+    @property
+    def has_intro_wild_scores(self) -> bool:
+        return self._count_nonzero_scores(self.intro_wild_scores) > 0
+    
+    @property
+    def has_wild_scores(self) -> bool:
+        return self._count_nonzero_scores(self.wild_scores) > 0
+
+    @staticmethod
+    def _count_nonzero_scores(scores:dict):
+        return len([
+            score
+            for score in scores.values()
+            if score > 0
+        ])
+
+    def set_hard_scores(self, hard_scores, hard_charts):
+        self.hard_scores = self._maximize_scores(hard_scores, hard_charts)
+    
+    def set_intro_wild_scores(self, intro_wild_scores, intro_wild_charts):
+        self.intro_wild_scores = self._maximize_scores(intro_wild_scores, intro_wild_charts)
+    
+    def set_wild_scores(self, wild_scores, wild_charts):
+        self.wild_scores = self._maximize_scores(wild_scores, wild_charts)
+
+    def _maximize_scores(self, scores, charts):
+        return {
+            chart_id: self._maximize_score(scores, chart_id)
+            for chart_id in charts
+        }
+
+    @staticmethod
+    def _maximize_score(scores, chart_id):
+        max_score=0
+        for score in scores.get(chart_id, []):
+            if score > max_score:
+                max_score = score
+        return max_score
 
 
 def load_from_json(path):
@@ -67,6 +114,7 @@ def get_event_scores(
             continue
     return scores
 
+
 def get_song_title_by_chart_id(song_info_aug, chart_id):
     [song_title] = [
         song["title"]
@@ -74,6 +122,39 @@ def get_song_title_by_chart_id(song_info_aug, chart_id):
         if song["chart_id"] == chart_id
     ]
     return song_title
+
+
+"""
+Table Template
+    1           2       3       4       ...
+1   <empty>     song1   song2   song3   ...
+2   player_name score1  score2  score3
+3   player_name score1  score2  score3
+N
+"""
+def write_results_header_to_spreadsheet(sheet, charts, gauntlet) -> None:
+    cells = []
+    row = 1
+    col = 2  # skip [1,1]
+    cells.append(Cell(row, col, "eligible for ranking"))
+    col += 1
+    for chart_id in charts:
+        cells.append(Cell(row, col, get_song_title_by_chart_id(gauntlet, chart_id)))
+        col += 1
+    sheet.update_cells(cells)
+
+def write_results_row_to_spreadsheet(sheet, row, name, eligibility, scores, charts) -> None:
+    cells = []
+    col = 1 
+    cells.append(Cell(row, col, name))
+    col += 1
+    cells.append(Cell(row, col, eligibility))
+    col += 1
+    for chart_id in charts:
+        cells.append(Cell(row, col, scores[chart_id]))
+        col += 1
+    sheet.update_cells(cells)
+
 
 if __name__ == "__main__":
     event_folder = './girlpoc-25-singles/'
@@ -123,73 +204,128 @@ if __name__ == "__main__":
     
     # retrieve event scores for players
     for player in players:
-        if player.can_compete_hard:
-            scores = get_event_scores(
-                player=player,
-                chart_ids=hard_charts,
-                start_date=start_date,
-                end_date=end_date,
-                attempts_to_count=attempts_to_count
-            )
-            player.hard_scores = scores
+        scores = get_event_scores(
+            player=player,
+            chart_ids=hard_charts,
+            start_date=start_date,
+            end_date=end_date,
+            attempts_to_count=attempts_to_count
+        )
+        player.set_hard_scores(scores, hard_charts)
 
-        if player.can_compete_intro_wild:
-            scores = get_event_scores(
-                player=player,
-                chart_ids=intro_wild_charts,
-                start_date=start_date,
-                end_date=end_date,
-                attempts_to_count=attempts_to_count
-            )
-            player.intro_wild_scores = scores
+        scores = get_event_scores(
+            player=player,
+            chart_ids=intro_wild_charts,
+            start_date=start_date,
+            end_date=end_date,
+            attempts_to_count=attempts_to_count
+        )
+        player.set_intro_wild_scores(scores, intro_wild_charts)
 
-        if player.can_compete_wild:
-            scores = get_event_scores(
-                player=player,
-                chart_ids=wild_charts,
-                start_date=start_date,
-                end_date=end_date,
-                attempts_to_count=attempts_to_count
-            )
-            player.wild_scores = scores
+        scores = get_event_scores(
+            player=player,
+            chart_ids=wild_charts,
+            start_date=start_date,
+            end_date=end_date,
+            attempts_to_count=attempts_to_count
+        )
+        player.set_wild_scores(scores, wild_charts)
 
-    # print max score per chart
-    print("HARD")
+    # report results
+    gs = gspread_auth()
+    results_spreadsheet = gs.open_by_key(load_from_json(event_folder + 'singles_results_spreadsheet_key.json').get('key'))
+
+    # Hard
+    sheet = results_spreadsheet.worksheet("Hard")
+    sheet.clear()
+    write_results_header_to_spreadsheet(
+        sheet=sheet,
+        charts=hard_charts,
+        gauntlet=hard_gauntlet
+    )
+    row = 2
     for player in players:
-        if not player.can_compete_hard:
+        if not player.has_hard_scores:
             continue
-        hard_scores = player.hard_scores
-        for chart_id in hard_charts:
-            max_score=0
-            for score in hard_scores.get(chart_id, []):
-                if score > max_score:
-                    max_score = score
-            song_title = get_song_title_by_chart_id(hard_gauntlet, chart_id)
-            print("\t".join([player.name, song_title, str(max_score)]))
-        print()
+        write_results_row_to_spreadsheet(
+            sheet=sheet,
+            row=row,
+            name=player.name,
+            eligibility=player.can_compete_hard,
+            scores=player.hard_scores,
+            charts=hard_charts
+        )
+        row += 1
 
-    print("INTRO TO WILD")
+    # Intro Wild
+    sheet = results_spreadsheet.worksheet("Intro to Wild")
+    sheet.clear()
+    write_results_header_to_spreadsheet(
+        sheet=sheet,
+        charts=intro_wild_charts,
+        gauntlet=intro_wild_gauntlet
+    )
+    row = 2
     for player in players:
-        if not player.can_compete_intro_wild:
+        if not player.has_intro_wild_scores:
             continue
-        intro_wild_scores = player.intro_wild_scores
-        for chart_id in intro_wild_charts:
-            max_score=0
-            for score in intro_wild_scores.get(chart_id, []):
-                if score > max_score:
-                    max_score = score
-            song_title = get_song_title_by_chart_id(intro_wild_gauntlet, chart_id)
-            print("\t".join([player.name, song_title, str(max_score)]))
-        print()
+        write_results_row_to_spreadsheet(
+            sheet=sheet,
+            row=row,
+            name=player.name,
+            eligibility=player.can_compete_intro_wild,
+            scores=player.intro_wild_scores,
+            charts=intro_wild_charts
+        )
+        row += 1
     
-    print("WILD")
+    # Wild
+    sheet = results_spreadsheet.worksheet("Wild")
+    sheet.clear()
+    write_results_header_to_spreadsheet(
+        sheet=sheet,
+        charts=wild_charts,
+        gauntlet=wild_gauntlet
+    )
+    row = 2
     for player in players:
-        wild_scores = player.wild_scores
-        for chart_id in wild_charts:
-            max_score=0
-            for score in wild_scores.get(chart_id, []):
-                if score > max_score:
-                    max_score = score
-            song_title = get_song_title_by_chart_id(wild_gauntlet, chart_id)
-            print("\t".join([player.name, song_title, str(max_score)]))
-        print()
+        if not player.has_wild_scores:
+            continue
+        write_results_row_to_spreadsheet(
+            sheet=sheet,
+            row=row,
+            name=player.name,
+            eligibility=player.can_compete_wild,
+            scores=player.wild_scores,
+            charts=wild_charts
+        )
+        row += 1
+    
+    if debug:
+        # print max score per chart
+        print("HARD")
+        for player in players:
+            scores = player.hard_scores
+            for chart_id in hard_charts:
+                song_title = get_song_title_by_chart_id(hard_gauntlet, chart_id)
+                score = scores[chart_id]
+                print("\t".join([player.name, song_title, str(score)]))
+            print()
+
+        print("INTRO TO WILD")
+        for player in players:
+            scores = player.intro_wild_scores
+            for chart_id in intro_wild_charts:
+                song_title = get_song_title_by_chart_id(intro_wild_gauntlet, chart_id)
+                score = scores[chart_id]
+                print("\t".join([player.name, song_title, str(score)]))
+            print()
+        
+        print("WILD")
+        for player in players:
+            scores = player.wild_scores
+            for chart_id in wild_charts:
+                song_title = get_song_title_by_chart_id(wild_gauntlet, chart_id)
+                score = scores[chart_id]
+                print("\t".join([player.name, song_title, str(score)]))
+            print()
