@@ -9,7 +9,7 @@ from gspread.cell import Cell
 sf = ScoreFetcher()
 sf.debug = False
 
-class Tournament:
+class GauntletTournament:
     max_difficulty = 26
 
     def __init__(

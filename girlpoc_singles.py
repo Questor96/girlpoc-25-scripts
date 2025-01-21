@@ -1,7 +1,7 @@
 import json
 
 from gcs.gspread_auth import gspread_auth
-from src.Tournament import Tournament
+from src.Tournament import GauntletTournament
 
 debug = False
 
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     gs = gspread_auth()
     rs = gs.open_by_key(load_from_json(event_folder + 'singles_results_spreadsheet_key.json').get('key'))
 
-    ht = Tournament(
+    ht = GauntletTournament(
         name="Hard",
         start_date=config['start_date'],
         end_date=config['end_date'],
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     ht.get_all_scores()
     ht.report_results(rs.worksheet("Hard"))
 
-    iwt = Tournament(
+    iwt = GauntletTournament(
         name="Intro to Wild",
         start_date=config['start_date'],
         end_date=config['end_date'],
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     iwt.get_all_scores()
     iwt.report_results(rs.worksheet("Intro to Wild"))
 
-    wt = Tournament(
+    wt = GauntletTournament(
         name="Wild",
         start_date=config['start_date'],
         end_date=config['end_date'],
