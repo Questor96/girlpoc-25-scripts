@@ -1,42 +1,52 @@
 [
     {
         "title": "Moonlight",
-        "difficulty": 20
+        "difficulty": 20,
+        "difficulty_name": "wild"
     },
     {
         "title": "Big Boss",
-        "difficulty": 21
+        "difficulty": 21,
+        "difficulty_name": "wild"
     },
     {
         "title": "Get Lifted",
-        "difficulty": 21
+        "difficulty": 21,
+        "difficulty_name": "wild"
     },
     {
         "title": "Crazyloop",
-        "difficulty": 22
+        "difficulty": 22,
+        "difficulty_name": "wild"
     },
     {
         "title": "The Bass & the Melody",
-        "difficulty": 22
+        "difficulty": 22,
+        "difficulty_name": "wild"
     },
     {
         "title": "Music is Moving",
-        "difficulty": 23
+        "difficulty": 23,
+        "difficulty_name": "wild"
     },
     {
         "title": "Hero of the Night",
-        "difficulty": 23
+        "difficulty": 23,
+        "difficulty_name": "wild"
     },
     {
         "title": "Mothership",
-        "difficulty": 24
+        "difficulty": 24,
+        "difficulty_name": "wild"
     },
     {
         "title": "BLEEP BLOOP",
-        "difficulty": 24
+        "difficulty": 24,
+        "difficulty_name": "wild"
     },
     {
         "title": "Arsene's Bazaar",
-        "difficulty": 25
+        "difficulty": 25,
+        "difficulty_name": "wild"
     }
 ]

@@ -198,7 +198,14 @@ class ScoreFetcher():
         chart_ids = []
         for song in song_info:
             for chart in self.charts:
-                if song['id'] == chart['song_id'] and song['difficulty'] == chart['difficulty']:
+                if (
+                    song['id'] == chart['song_id'] 
+                    and song['difficulty'] == chart['difficulty']
+                    and (
+                        song.get('difficulty_name') is None
+                        or chart['difficulty_name'].startswith(song['difficulty_name'])
+                    )
+                ):
                     chart_ids.append(chart['id'])
                     song['chart_id'] = chart['id']
                     break

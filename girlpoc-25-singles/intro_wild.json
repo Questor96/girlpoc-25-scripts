@@ -1,42 +1,52 @@
 [
     {
         "title": "Bad Revenge",
-        "difficulty": 16
+        "difficulty": 16,
+        "difficulty_name": "hard"
     },
     {
         "title": "Ievan Polkka",
-        "difficulty": 16
+        "difficulty": 16,
+        "difficulty_name": "hard"
     },
     {
         "title": "BUBBLES",
-        "difficulty": 17
+        "difficulty": 17,
+        "difficulty_name": "hard"
     },
     {
         "title": "Speed King",
-        "difficulty": 17
+        "difficulty": 17,
+        "difficulty_name": "hard"
     },
     {
         "title": "Big Boss",
-        "difficulty": 18
+        "difficulty": 18,
+        "difficulty_name": "hard"
     },
     {
         "title": "Zen",
-        "difficulty": 18
+        "difficulty": 18,
+        "difficulty_name": "hard"
     },
     {
         "title": "Birdie",
-        "difficulty": 19
+        "difficulty": 19,
+        "difficulty_name": "wild"
     },
     {
         "title": "Joanna",
-        "difficulty": 19
+        "difficulty": 19,
+        "difficulty_name": "wild"
     },
     {
         "title": "Way To Rio",
-        "difficulty": 20
+        "difficulty": 20,
+        "difficulty_name": "wild"
     },
     {
         "title": "Definition of a Badboy",
-        "difficulty": 20
+        "difficulty": 20,
+        "difficulty_name": "wild"
     }
 ]
