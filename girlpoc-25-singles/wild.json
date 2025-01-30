@@ -1,52 +1,60 @@
-[
-    {
-        "title": "Moonlight",
-        "difficulty": 20,
-        "difficulty_name": "wild"
+{
+    "config": {
+        "start_date": "2025-01-24",
+        "end_date": "2025-02-09",
+        "attempts_to_count": 3,
+        "disqualify_if": {}
     },
-    {
-        "title": "Big Boss",
-        "difficulty": 21,
-        "difficulty_name": "wild"
-    },
-    {
-        "title": "Get Lifted",
-        "difficulty": 21,
-        "difficulty_name": "wild"
-    },
-    {
-        "title": "Crazyloop",
-        "difficulty": 22,
-        "difficulty_name": "wild"
-    },
-    {
-        "title": "The Bass & the Melody",
-        "difficulty": 22,
-        "difficulty_name": "wild"
-    },
-    {
-        "title": "Music is Moving",
-        "difficulty": 23,
-        "difficulty_name": "wild"
-    },
-    {
-        "title": "Hero of the Night",
-        "difficulty": 23,
-        "difficulty_name": "wild"
-    },
-    {
-        "title": "Mothership",
-        "difficulty": 24,
-        "difficulty_name": "wild"
-    },
-    {
-        "title": "BLEEP BLOOP",
-        "difficulty": 24,
-        "difficulty_name": "wild"
-    },
-    {
-        "title": "Arsene's Bazaar",
-        "difficulty": 25,
-        "difficulty_name": "wild"
-    }
-]
+    "charts": [
+        {
+            "title": "Moonlight",
+            "difficulty": 20,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Big Boss",
+            "difficulty": 21,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Get Lifted",
+            "difficulty": 21,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Crazyloop",
+            "difficulty": 22,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "The Bass & the Melody",
+            "difficulty": 22,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Music is Moving",
+            "difficulty": 23,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Hero of the Night",
+            "difficulty": 23,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Mothership",
+            "difficulty": 24,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "BLEEP BLOOP",
+            "difficulty": 24,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Arsene's Bazaar",
+            "difficulty": 25,
+            "difficulty_name": "wild"
+        }
+    ]
+}

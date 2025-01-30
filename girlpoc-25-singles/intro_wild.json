@@ -1,52 +1,64 @@
-[
-    {
-        "title": "Bad Revenge",
-        "difficulty": 16,
-        "difficulty_name": "hard"
+{
+    "config": {
+        "start_date": "2025-01-24",
+        "end_date": "2025-02-09",
+        "attempts_to_count": 3,
+        "disqualify_if": {
+            "score_gte": 99000,
+            "difficulty": 21,
+            "count": 1
+        }
     },
-    {
-        "title": "Ievan Polkka",
-        "difficulty": 16,
-        "difficulty_name": "hard"
-    },
-    {
-        "title": "BUBBLES",
-        "difficulty": 17,
-        "difficulty_name": "hard"
-    },
-    {
-        "title": "Speed King",
-        "difficulty": 17,
-        "difficulty_name": "hard"
-    },
-    {
-        "title": "Big Boss",
-        "difficulty": 18,
-        "difficulty_name": "hard"
-    },
-    {
-        "title": "Zen",
-        "difficulty": 18,
-        "difficulty_name": "hard"
-    },
-    {
-        "title": "Birdie",
-        "difficulty": 19,
-        "difficulty_name": "wild"
-    },
-    {
-        "title": "Joanna",
-        "difficulty": 19,
-        "difficulty_name": "wild"
-    },
-    {
-        "title": "Way To Rio",
-        "difficulty": 20,
-        "difficulty_name": "wild"
-    },
-    {
-        "title": "Definition of a Badboy",
-        "difficulty": 20,
-        "difficulty_name": "wild"
-    }
-]
+    "charts": [
+        {
+            "title": "Bad Revenge",
+            "difficulty": 16,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Ievan Polkka",
+            "difficulty": 16,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "BUBBLES",
+            "difficulty": 17,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Speed King",
+            "difficulty": 17,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Big Boss",
+            "difficulty": 18,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Zen",
+            "difficulty": 18,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Birdie",
+            "difficulty": 19,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Joanna",
+            "difficulty": 19,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Way To Rio",
+            "difficulty": 20,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Definition of a Badboy",
+            "difficulty": 20,
+            "difficulty_name": "wild"
+        }
+    ]
+}

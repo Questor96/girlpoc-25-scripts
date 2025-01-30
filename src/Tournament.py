@@ -19,7 +19,8 @@ class GauntletTournament:
         end_date: str,
         attempts_to_count: int,
         ineligible_difficulty: int = None,
-        ineligible_score: int = None
+        ineligible_score: int = None,
+        ineligible_count: int = None,
     ):
         self.name = name
         self.start_date = start_date
@@ -27,6 +28,7 @@ class GauntletTournament:
         self.attempts_to_count = attempts_to_count
         self.ineligible_difficulty = ineligible_difficulty
         self.ineligible_score = ineligible_score
+        self.ineligible_count = ineligible_count
         
         self.players: list[Player] = []
         self.charts: list[Chart] = []
@@ -49,11 +51,11 @@ class GauntletTournament:
                     difficulty=list(range(self.ineligible_difficulty, self.max_difficulty)),
                     score_gte=self.ineligible_score,
                     end=self.start_date,  # only disqualify based on scores beforehand
-                    take=1  # only need one score
+                    take=self.ineligible_count if self.ineligible_count is not None else 1
                 ))
             results = sf.exec_load_player_scores(searches)
             for index in range(len(player_names)):
-                self.players.append(Player(player_names[index], not len(results[index]) > 0))
+                self.players.append(Player(player_names[index], not len(results[index]) >= self.ineligible_count))
 
     def load_charts(self, gauntlet_json) -> None:
         sf.filter_charts_by_song(gauntlet_json)

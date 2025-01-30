@@ -6,6 +6,8 @@ data/*
 
 # GCS Authorization
 gcs_client_secrets.json
+gcs_service_account_secrets.json
 
 # results reporting
 singles_results_spreadsheet_key.json
+players.json
