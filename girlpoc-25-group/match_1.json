@@ -1,0 +1,39 @@
+{
+    "config": {
+        "start_date": "2025-01-24",
+        "end_date": "2025-02-09",
+        "attempts_to_count": 3
+    },
+    "charts": [
+        {
+            "title": "Dance Vibrations",
+            "difficulty": 19,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "The Naughty Song",
+            "difficulty":19,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Tick Tock",
+            "difficulty": 20,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "July",
+            "difficulty": 20,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Recovery",
+            "difficulty": 19,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Coming Out",
+            "difficulty": 19,
+            "difficulty_name": "wild"
+        }
+    ]
+}

@@ -1,0 +1,39 @@
+{
+    "config": {
+        "start_date": "2025-01-24",
+        "end_date": "2025-02-09",
+        "attempts_to_count": 3
+    },
+    "charts": [
+        {
+            "title": "Give Into",
+            "difficulty": 22,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Dancing In The Dark",
+            "difficulty":21,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Vodka",
+            "difficulty": 21,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Feel The Melody",
+            "difficulty": 20,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Doh!",
+            "difficulty": 20,
+            "difficulty_name": "wild"
+        },
+        {
+            "title": "Everybody 2 the Sun",
+            "difficulty": 20,
+            "difficulty_name": "wild"
+        }
+    ]
+}

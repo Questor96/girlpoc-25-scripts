@@ -1,11 +1,13 @@
 {
-    "start_date": "2025-01-15",
-    "end_date": "2025-02-09",
-    "attempts_to_count": 3,
-    "disqualify_if": {
-        "score_gte": 12345,
-        "difficulty": 12,
-        "count": 123
+    "config": {
+        "start_date": "2025-01-15",
+        "end_date": "2025-02-09",
+        "attempts_to_count": 3,
+        "disqualify_if": {
+            "score_gte": 12345,
+            "difficulty": 12,
+            "count": 123
+        }
     },
     "charts": [
         {
