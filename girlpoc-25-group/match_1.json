@@ -1,7 +1,7 @@
 {
     "config": {
         "start_date": "2025-01-24",
-        "end_date": "2025-02-09",
+        "end_date": "2025-02-11",
         "attempts_to_count": 3
     },
     "charts": [
