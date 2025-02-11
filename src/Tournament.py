@@ -115,7 +115,8 @@ class GauntletTournament:
             if player.has_scores and player.can_compete:
                 row += 1
                 self._write_results_row_to_worksheet(worksheet, row, player)
-            elif player.has_scores:
+        for player in self.players:
+            if player.has_scores and not player.can_compete:
                 row += 1
                 self._write_results_row_to_worksheet(worksheet, row, player)
 
