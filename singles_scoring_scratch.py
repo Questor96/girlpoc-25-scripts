@@ -28,14 +28,15 @@ def process_scores(tsv):
                 total_scores[player] = score_val
     return dict(sorted(total_scores.items(), key=lambda item: item[1], reverse=True))
 
-def print_dict(my_dict):
+def write_dict(file, my_dict):
     for i, j in my_dict.items():
-        print(f"{i}\t{j}")
+        file.write(f"{i}\t{round(j, 1)}\n")
 
 if __name__ == "__main__":
-    print("Hard")
-    print_dict(process_scores('girlpoc-25-singles/hard_scores.tsv'))
-    print("\nIntro to Wild")
-    print_dict(process_scores('girlpoc-25-singles/intro_wild_scores.tsv'))
-    print("\nWild")
-    print_dict(process_scores('girlpoc-25-singles/wild_scores.tsv'))
+    with open('girlpoc-25-singles/final_results.tsv', "w") as file:
+        file.write("Hard\n")
+        write_dict(file, process_scores('girlpoc-25-singles/hard_scores.tsv'))
+        file.write("\nIntro to Wild\n")
+        write_dict(file, process_scores('girlpoc-25-singles/intro_wild_scores.tsv'))
+        file.write("\nWild\n")
+        write_dict(file, process_scores('girlpoc-25-singles/wild_scores.tsv'))
