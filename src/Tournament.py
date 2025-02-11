@@ -112,7 +112,10 @@ class GauntletTournament:
         row = 1
         self._write_results_header_to_worksheet(worksheet, row)
         for player in self.players:
-            if player.has_scores:
+            if player.has_scores and player.can_compete:
+                row += 1
+                self._write_results_row_to_worksheet(worksheet, row, player)
+            elif player.has_scores:
                 row += 1
                 self._write_results_row_to_worksheet(worksheet, row, player)
 
