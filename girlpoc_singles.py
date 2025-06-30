@@ -16,7 +16,7 @@ if __name__ == "__main__":
     event_folder = './girlpoc-25-singles/'
     gs = gspread_auth()
     rs = gs.open_by_key(load_from_json(event_folder + 'singles_results_spreadsheet_key.json').get('key'))
-    players = load_from_json(event_folder + 'players.json')
+    entrants = load_from_json(event_folder + 'entrants.json')
 
 
     hard_json = load_from_json(event_folder + 'hard.json')
@@ -31,8 +31,8 @@ if __name__ == "__main__":
         ineligible_score=hard_config['disqualify_if']['score_gte'],
         ineligible_count=hard_config['disqualify_if']['count']
     )
-    ht.load_charts(hard_charts)
-    ht.load_players(players)
+    ht.filter_songs_and_charts(hard_charts)
+    ht.load_entrants(entrants)
     ht.get_all_scores()
     ht.report_results(rs.worksheet("Hard"))
 
@@ -48,8 +48,8 @@ if __name__ == "__main__":
         ineligible_score=iwt_config['disqualify_if']['score_gte'],
         ineligible_count=iwt_config['disqualify_if']['count']
     )
-    iwt.load_charts(iwt_charts)
-    iwt.load_players(players)
+    iwt.filter_songs_and_charts(iwt_charts)
+    iwt.load_entrants(entrants)
     iwt.get_all_scores()
     iwt.report_results(rs.worksheet("Intro to Wild"))
 
@@ -62,8 +62,8 @@ if __name__ == "__main__":
         end_date=w_config['end_date'],
         attempts_to_count=w_config['attempts_to_count']
     )
-    wt.load_charts(w_charts)
-    wt.load_players(players)
+    wt.filter_songs_and_charts(w_charts)
+    wt.load_entrants(entrants)
     wt.get_all_scores()
     wt.report_results(rs.worksheet("Wild"))
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         tournaments = [ht, iwt, wt]
         for tournament in tournaments:
             print(tournament.name)
-            for player in tournament.players:
-                for score in player.scores:
-                    print("\t".join([player.name, score.chart.song_title, score.value]))
+            for entrant in tournament.entrants:
+                for score in entrant.scores:
+                    print("\t".join([entrant.name, score.chart.song_title, score.value]))
                 print()

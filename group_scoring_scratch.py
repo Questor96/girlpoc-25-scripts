@@ -4,9 +4,9 @@ from itertools import product
 TWO_PLAYER_OPTIONS = set([choice for choice in list(product([0,0,0,1,1,1], repeat=6)) if choice.count(1) == 3 and choice.count(0) == 3])
 THREE_PLAYER_OPTIONS = set([choice for choice in list(product([0,0,1,1,2,2], repeat=6)) if choice.count(2) == 2 and choice.count(1) == 2 and choice.count(0) == 2])
 
-def compute_max_combo(scores, two_player: bool = False):
+def compute_max_combo(scores, two_entrant: bool = False):
     options = THREE_PLAYER_OPTIONS
-    if two_player:
+    if two_entrant:
         options = TWO_PLAYER_OPTIONS
     max_score = 0
     best_option = []

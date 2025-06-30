@@ -16,16 +16,16 @@ def process_scores(tsv):
     for i in range(2, 11):
         song_df = df.iloc[:, [0, i]].sort_values(by=df.columns[i], ascending=False).reset_index(drop=True)
         for i in range(len(song_df)):
-            player = song_df.loc[i, song_df.columns[0]]
+            entrant = song_df.loc[i, song_df.columns[0]]
             score = song_df.loc[i, song_df.columns[1]]
             if score == 0:
                 score_val = 0
             else:
                 score_val = score_calc(i, len(song_df) - 1)
             try:
-                total_scores[player] += score_val
+                total_scores[entrant] += score_val
             except KeyError:
-                total_scores[player] = score_val
+                total_scores[entrant] = score_val
     return dict(sorted(total_scores.items(), key=lambda item: item[1], reverse=True))
 
 def write_dict(file, my_dict):

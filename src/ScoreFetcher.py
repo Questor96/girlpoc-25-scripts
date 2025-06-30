@@ -5,6 +5,11 @@ import json
 import pprint
 from urllib.parse import urlencode
 
+from src.Chart import Chart
+from src.Gamer import Gamer
+from src.Score import Score
+from src.Song import Song
+
 # lazy printer for debugging:)
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -14,9 +19,9 @@ class ScoreFetcher():
     # file store info
     config_path = './config'
     data_path = './data'
-    songs = []
-    charts = []
-    event_loop = None 
+    songs: list[Song] = []
+    charts: list[Chart] = []
+    event_loop = None
 
     def __init__(self, *, debug=None):
         if debug:
@@ -29,7 +34,7 @@ class ScoreFetcher():
         # grab song, chart data asynchronously
         coroutines = [
             self.load_songs(),
-            self.load_charts()
+            self.load_charts(),
         ]
         [self.songs, self.charts] = self.event_loop.run_until_complete(asyncio.gather(*coroutines))
         if self.debug:
@@ -125,65 +130,80 @@ class ScoreFetcher():
         return data
 
 
-    async def load_songs(self):
+    async def load_songs(self) -> list[Song]:
         filepath = self.data_path + '/songs'
         url = 'http://api.smx.573.no/songs'
         data = await self.load_data_incremental(filepath, url)
+        data = [Song(**song) for song in data]
         return data
 
 
-    async def load_charts(self):
+    async def load_charts(self) -> list[Chart]:
         filepath = self.data_path + '/charts'
         url = 'http://api.smx.573.no/charts'
         data = await self.load_data_incremental(filepath, url)
+        data = [Chart(**chart) for chart in data]
         return data
 
 
-    # generic score loading
-    async def load_scores(self,params):
+    async def load_scores(self, params):
         url = 'http://api.smx.573.no/scores'
         data = await self.load_from_url(url, params)
-        return data
+        scores = []
+        for raw_score in data:
+            raw_score["chart"] = Chart(**raw_score["chart"])
+            raw_score["song"] = Song(**raw_score["song"])
+            raw_score["gamer"] = Gamer(**raw_score["gamer"])
+            scores.append(Score(**raw_score))
+        return scores
 
 
     # specific support for certain fields
-    async def load_player_scores(
+    async def load_entrant_scores(
             self,
             *,
-            player_name:str,
+            entrant_name:str,
             start:datetime = None,
             end:datetime = None,
             score_gte:int = None,
+            score_lte:int = None,
             difficulty:list[int] = None,
             difficulty_name:str = None,
             chart_ids:list[int] = None,
             sort_field:str = None,
             order:str = None,
-            take:int = None
+            get_max_only:bool = False,
+            take:int = None,
         ):
-        params = {'gamer.username': player_name}
+        # Required params
+        params = {'gamer.username': entrant_name}
+
+        # Optional params
         if start is not None or end is not None:
             params['created_at'] = {}
-            if start: self.update_dict_if_not_null(params['created_at'], 'gte', str(start))
-            if end: self.update_dict_if_not_null(params['created_at'], 'lte', str(end))
-        if score_gte is not None:
+            if start: params['created_at']['gte'] = str(start)
+            if end: params['created_at']['lte'] = str(end)
+        if score_gte is not None or score_lte is not None:
             params['score'] = {}
-            if score_gte: self.update_dict_if_not_null(params['score'], 'gte', score_gte)
+            if score_gte: params['score']['gte'] = score_gte
+            if score_lte: params['score']['lte'] = score_lte
         self.update_dict_if_not_null(params, 'chart.difficulty', difficulty)
         self.update_dict_if_not_null(params, 'chart.difficulty_name', difficulty_name)
         self.update_dict_if_not_null(params, 'chart.id', chart_ids)
         self.update_dict_if_not_null(params, '_sort', sort_field)
         self.update_dict_if_not_null(params, '_order', order)
+        if get_max_only: params['_group_by'] = 'song_chart_id'
         self.update_dict_if_not_null(params, '_take', take)
+        
         data = await self.load_scores(params)
+        print(data[0])
         return data
 
 
-    def exec_load_player_scores(self, coroutines):
+    def exec_load_entrant_scores(self, coroutines) -> list[list[Score]]:
         return self.event_loop.run_until_complete(asyncio.gather(*coroutines))
 
 
-    # clever idea from google genAI overview
     def update_dict_if_not_null(self, dict, key, value):
         if value is not None:
             dict[key] = value
@@ -232,7 +252,7 @@ if __name__ == '__main__':
     #   pull from file eventually
     start = datetime.date(year=2024, month=11, day=1)
     end = datetime.date(year=2024, month=11, day=13)
-    players = [
+    entrants = [
         "Thaya",
         "Hamaon"
     ]
@@ -253,11 +273,11 @@ if __name__ == '__main__':
     
     # load score data asynchronously
     searches = []
-    for player in players:
+    for entrant in entrants:
         for chart_id in chart_ids:
             searches.append(
-                sf.load_player_scores(
-                    player_name=player,
+                sf.load_entrant_scores(
+                    entrant_name=entrant,
                     start=start,
                     end=end,
                     chart_ids=chart_id,
@@ -266,7 +286,7 @@ if __name__ == '__main__':
                     take=num_tries_to_count
                 )
             )
-    all_results = sf.exec_load_player_scores(searches)
+    all_results = sf.exec_load_entrant_scores(searches)
     with open('test_bulk.json', 'w') as of:
         json.dump(all_results, of)
     for result in all_results:
