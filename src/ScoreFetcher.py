@@ -3,7 +3,6 @@ import requests
 import datetime
 import json
 import pprint
-from urllib.parse import urlencode
 
 from src.Chart import Chart
 from src.Gamer import Gamer
@@ -51,7 +50,8 @@ class ScoreFetcher():
             if self.debug:
                 pp.pprint(params)
             url = f'{url}?params={json.dumps(params)}'
-        if self.debug: print("url: " + url)
+        if self.debug:
+            print("url: " + url)
         response = requests.get(url)
         if response.status_code != 200:
             print(response.status_code, response.reason)
@@ -181,18 +181,23 @@ class ScoreFetcher():
         # Optional params
         if start is not None or end is not None:
             params['created_at'] = {}
-            if start: params['created_at']['gte'] = str(start)
-            if end: params['created_at']['lte'] = str(end)
+            if start:
+                params['created_at']['gte'] = str(start)
+            if end:
+                params['created_at']['lte'] = str(end)
         if score_gte is not None or score_lte is not None:
             params['score'] = {}
-            if score_gte: params['score']['gte'] = score_gte
-            if score_lte: params['score']['lte'] = score_lte
+            if score_gte:
+                params['score']['gte'] = score_gte
+            if score_lte:
+                params['score']['lte'] = score_lte
         self.update_dict_if_not_null(params, 'chart.difficulty', difficulty)
         self.update_dict_if_not_null(params, 'chart.difficulty_name', difficulty_name)
         self.update_dict_if_not_null(params, 'chart.id', chart_ids)
         self.update_dict_if_not_null(params, '_sort', sort_field)
         self.update_dict_if_not_null(params, '_order', order)
-        if get_max_only: params['_group_by'] = 'song_chart_id'
+        if get_max_only:
+            params['_group_by'] = 'song_chart_id'
         self.update_dict_if_not_null(params, '_take', take)
         
         data = await self.load_scores(params)

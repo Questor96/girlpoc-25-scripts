@@ -1,7 +1,5 @@
 from src.Chart import Chart
-from src.Gamer import Gamer
 from src.Entrant import Entrant
-from src.Score import Score
 from src.Song import Song
 from src.ScoreFetcher import ScoreFetcher
 
