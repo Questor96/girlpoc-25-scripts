@@ -38,5 +38,13 @@ class Score:
     uuid: str
     yellow: int
 
-    def ladder_points(self, difficulty_scaling: float = 2.0) -> float:
-        return self.score * (self.chart.difficulty**difficulty_scaling) / 1000
+    def ladder_points(
+        self,
+        score_floor: int = 0,
+        difficulty_scaling: float = 2.0,
+    ) -> float:
+        
+        return max(
+            (self.score - score_floor) * (self.chart.difficulty ** difficulty_scaling) / 1000,
+            0
+        )

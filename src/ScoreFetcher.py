@@ -196,7 +196,7 @@ class ScoreFetcher():
         self.update_dict_if_not_null(params, '_take', take)
         
         data = await self.load_scores(params)
-        print(data[0])
+        print(f"Returned {len(data)} scores for {entrant_name=}")
         return data
 
 

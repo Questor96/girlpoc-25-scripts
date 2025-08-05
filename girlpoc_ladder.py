@@ -12,28 +12,23 @@ def load_from_json(path):
 
 if __name__ == "__main__":
     event_folder = "./girlpoc-25-ladder/"
-    #gs = gspread_auth()
-    #rs = gs.open_by_key(load_from_json(event_folder + "ladder_results_spreadsheet_key.json").get("key"))
+    gs = gspread_auth()
+    result_spreadsheet = gs.open_by_key(load_from_json(event_folder + "ladder_results_spreadsheet_key.json").get("key"))
     entrants = load_from_json(event_folder + "entrants.json")
-
-    #config = load_from_json(event_folder + "config.json")
+    config = load_from_json(event_folder + "config.json")
 
     lt = LadderTournament(
         name="Girlpoc 2025.5",
-        start_date="2025-06-26",
-        end_date="2025-06-30",
-        ladder_point_scalar=1.2
+        start_date=config["start_date"],
+        end_date=config["end_date"],
+        scoring_floor=config["scoring_floor"],
+        ladder_point_scalar=config["ladder_point_scalar"],
+        num_songs_to_count=config["num_songs_to_count"],
     )
     lt.load_entrants(entrants)
     lt.get_all_scores()
-
-    for entrant in lt.entrants:
-        print(f"{entrant.name=}")
-        for score in entrant.scores:
-            print(
-                f"title={score.song.title} "
-                f"difficulty={score.chart.difficulty} "
-                f"score={score.score} "
-                f"ladder={score.ladder_points(lt.ladder_point_scalar)} "
-            )
-        print("")
+    lt.report_results(
+        spreadsheet=result_spreadsheet,
+        overall_results_sheet_name="Summary",
+        detail_results_sheet_name="Details"
+    )

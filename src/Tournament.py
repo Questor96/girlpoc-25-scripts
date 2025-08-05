@@ -5,6 +5,7 @@ from src.Score import Score
 from src.Song import Song
 from src.ScoreFetcher import ScoreFetcher
 
+from gspread.spreadsheet import Spreadsheet
 from gspread.worksheet import Worksheet
 from gspread.cell import Cell
 
@@ -42,9 +43,13 @@ class LadderTournament(Tournament):
         name: str,
         start_date: str,
         end_date: str,
-        ladder_point_scalar: float,
+        scoring_floor: int = 0,
+        ladder_point_scalar: float = 2.0,
+        num_scores_to_count: int = 20,
     ):
+        self.scoring_floor = scoring_floor
         self.ladder_point_scalar = ladder_point_scalar
+        self.num_scores_to_count = num_scores_to_count
         super().__init__(
             name=name,
             start_date=start_date,
@@ -73,9 +78,141 @@ class LadderTournament(Tournament):
         for entrant in self.entrants:
             entrant.scores = sorted(
                 entrant.scores,
-                key=lambda x: x.ladder_points(self.ladder_point_scalar),
-                reverse=True
+                key=lambda x: x.ladder_points(
+                    score_floor=self.scoring_floor,
+                    difficulty_scaling=self.ladder_point_scalar,
+                ),
+                reverse=True,
             )
+
+    def report_results(
+        self,
+        spreadsheet: Spreadsheet,
+        overall_results_sheet_name: str,
+        detail_results_sheet_name: str,
+    ):
+        overall_sheet = spreadsheet.worksheet(overall_results_sheet_name)
+        self._report_overall_results(overall_sheet)
+        detail_sheet = spreadsheet.worksheet(detail_results_sheet_name)
+        self._report_detail_results(detail_sheet)
+    
+    def _report_overall_results(self, worksheet: Worksheet):
+        start_row = 1
+        current_row = self._write_overall_header_to_worksheet(worksheet, start_row)
+        current_row = self._write_overall_data_to_worksheet(worksheet, current_row)
+    
+    def _write_overall_header_to_worksheet(self, worksheet: Worksheet, row):
+        cells = [
+            Cell(row, 1, "Rank"),
+            Cell(row, 2, "Player Name"),
+            Cell(row, 3, "Ladder Point Total")
+        ]
+        worksheet.update_cells(cells)
+        return row + 1
+    
+    def _write_overall_data_to_worksheet(self, worksheet: Worksheet, row):
+        overall_results = self._calculate_overall_results()
+        cells = []
+        rank = 1
+        for elem in overall_results:
+            col = 1
+            cells.append(Cell(row, col, rank))
+            col += 1
+            cells.append(Cell(row, col, elem[1].name))
+            col += 1
+            cells.append(Cell(row, col, elem[0]))
+            row += 1
+            rank += 1
+        worksheet.update_cells(cells)
+        return row
+
+    def _calculate_overall_results(self) -> list[tuple[float, Entrant]]:
+        overall_results = []
+        for entrant in self.entrants:
+            total_ladder_points = 0
+            for score in entrant.scores[ : self.num_scores_to_count]:
+                total_ladder_points += round(score.ladder_points(
+                    score_floor=self.scoring_floor,
+                    difficulty_scaling=self.ladder_point_scalar,
+                ), 2)
+            overall_results.append((total_ladder_points, entrant))
+        overall_results = sorted(
+            overall_results,
+            key=lambda x: x[0],
+            reverse=True
+        )
+        return overall_results
+
+    def _report_detail_results(self, worksheet: Worksheet):
+        start_row = 1
+        current_row = self._write_detail_header_to_worksheet(worksheet, start_row)
+        current_row = self._write_detail_data_to_worksheet(worksheet, current_row)
+        # self._apply_filter_to_detail_worksheet(worksheet)  # TODO: Fix this!!
+
+    def _write_detail_header_to_worksheet(self, worksheet: Worksheet, row):
+        cells = [
+            Cell(row, 1, "Player Name"),
+            Cell(row, 2, "Song"),
+            Cell(row, 3, "Difficulty Name"),
+            Cell(row, 4, "Difficulty Value"),
+            Cell(row, 5, "Score"),
+            Cell(row, 6, "Ladder Points"),
+        ]
+        worksheet.update_cells(cells)
+        return row + 1
+    
+    def _write_detail_data_to_worksheet(self, worksheet: Worksheet, row):
+        cells = []
+        for entrant in self.entrants:
+            for score in entrant.scores[ : self.num_scores_to_count]:
+                col = 1
+                cells.append(Cell(row, col, entrant.name))
+                col += 1
+                ladder_points = round(score.ladder_points(
+                    score_floor=self.scoring_floor,
+                    difficulty_scaling=self.ladder_point_scalar,
+                ), 2)
+                cells.append(Cell(row, col, score.song.title))
+                col += 1
+                cells.append(Cell(row, col, score.chart.difficulty_display))
+                col += 1
+                cells.append(Cell(row, col, score.chart.difficulty))
+                col += 1
+                cells.append(Cell(row, col, score.score))
+                col += 1
+                cells.append(Cell(row, col, ladder_points))
+                row += 1
+        worksheet.update_cells(cells)
+        return row
+
+    def _apply_filter_to_detail_worksheet(self, worksheet: Worksheet):
+        # TODO: Figure this ish out
+        request = {
+            "setBasicFilter": {
+                "filter": {
+                    "range": {    
+                        "sheetId": worksheet.id,
+                        "startColumnIndex": 0, #column A
+                        "endColumnIndex": 5, #column E
+                    }
+                }
+            }
+        }
+        """filter_range = {
+            "sheetId": worksheet.id,
+            "startRowIndex": 0,
+            "endRowIndex": worksheet.row_count,
+            "startColumnIndex": 0,
+            "endColumnIndex": 5
+        }
+        filter_request = {
+            "addFilterView": {
+                "filter": {
+                    "range": filter_range
+                }
+            }
+        }"""
+        worksheet.batch_update({"requests": [request]})
 
 
 class GauntletTournament(Tournament):
