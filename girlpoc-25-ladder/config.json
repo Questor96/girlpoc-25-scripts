@@ -1,7 +1,7 @@
 {
     "start_date": "2025-08-01",
-    "end_date": "2025-08-15",
+    "end_date": "2025-08-18",
     "scoring_floor": 86500,
     "ladder_point_scalar": 1.5,
-    "num_songs_to_count": 20
+    "num_scores_to_count": 20
 }

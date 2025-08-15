@@ -23,7 +23,7 @@ if __name__ == "__main__":
         end_date=config["end_date"],
         scoring_floor=config["scoring_floor"],
         ladder_point_scalar=config["ladder_point_scalar"],
-        num_songs_to_count=config["num_songs_to_count"],
+        num_scores_to_count=config["num_scores_to_count"],
     )
     lt.load_entrants(entrants)
     lt.get_all_scores()
