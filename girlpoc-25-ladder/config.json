@@ -1,6 +1,6 @@
 {
     "start_date": "2025-08-01",
-    "end_date": "2025-08-18",
+    "end_date": "2025-08-19",
     "scoring_floor": 86500,
     "ladder_point_scalar": 1.5,
     "num_scores_to_count": 20
