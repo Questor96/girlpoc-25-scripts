@@ -13,7 +13,7 @@ def load_from_json(path):
 
 if __name__ == "__main__":
     # cross-event constants
-    event_folder = './girlpoc-25-singles/'
+    event_folder = './'
     gs = gspread_auth()
     rs = gs.open_by_key(load_from_json(event_folder + 'singles_results_spreadsheet_key.json').get('key'))
     entrants = load_from_json(event_folder + 'entrants.json')
