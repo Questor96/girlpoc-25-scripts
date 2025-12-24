@@ -1,0 +1,64 @@
+{
+    "config": {
+        "start_date": "2026-01-24",
+        "end_date": "2026-02-12",
+        "attempts_to_count": 3,
+        "disqualify_if": {
+            "score_gte": 99000,
+            "difficulty": 18,
+            "count": 1
+        }
+    },
+    "charts": [
+        {
+            "title": "Fearless",
+            "difficulty": 13,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Love Arcade",
+            "difficulty": 13,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Big Boss",
+            "difficulty": 14,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Supernova",
+            "difficulty": 14,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "My Generation",
+            "difficulty": 15,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Running in the 90s",
+            "difficulty": 15,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Megalovania",
+            "difficulty": 16,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "RAD",
+            "difficulty": 16,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Crab Rave",
+            "difficulty": 17,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "VTubers Never Die!",
+            "difficulty": 17,
+            "difficulty_name": "hard"
+        }
+    ]
+}
