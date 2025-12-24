@@ -1,5 +1,4 @@
 import pandas as pd
-import pprint
 
 def score_calc(index, max_index):
     x = index / max_index
@@ -11,7 +10,7 @@ def process_scores(tsv):
     scores = pd.read_csv(tsv, sep="\t")
 
     total_scores = {}
-    df = scores[scores['Eligible for Ranking'] == True]
+    df = scores[scores['Eligible for Ranking']]  # implied boolean filter
     df = df.reset_index(drop=True)
     for i in range(2, 11):
         song_df = df.iloc[:, [0, i]].sort_values(by=df.columns[i], ascending=False).reset_index(drop=True)

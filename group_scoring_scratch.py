@@ -1,4 +1,3 @@
-import pandas as pd
 from itertools import product
 
 TWO_PLAYER_OPTIONS = set([choice for choice in list(product([0,0,0,1,1,1], repeat=6)) if choice.count(1) == 3 and choice.count(0) == 3])
