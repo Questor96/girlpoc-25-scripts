@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from src.Chart import Chart
 from src.Entrant import Entrant
 from src.Song import Song
@@ -14,8 +16,8 @@ class Tournament:
     def __init__(
         self,
         name: str,
-        start_date: str,
-        end_date: str
+        start_date: datetime,
+        end_date: datetime
     ):
         self.name = name
         self.start_date = start_date
@@ -39,8 +41,8 @@ class LadderTournament(Tournament):
     def __init__(
         self,
         name: str,
-        start_date: str,
-        end_date: str,
+        start_date: datetime,
+        end_date: datetime,
         scoring_floor: int = 0,
         ladder_point_scalar: float = 2.0,
         num_scores_to_count: int = 20,
@@ -69,12 +71,12 @@ class LadderTournament(Tournament):
         results = sf.exec_load_entrant_scores(searches)
         for index in range(len(self.entrants)):
             entrant = self.entrants[index]
-            entrant.scores = results[index]
+            entrant.set_scores(results[index])
         self._order_scores_by_ladder_points()
 
     def _order_scores_by_ladder_points(self):
         for entrant in self.entrants:
-            entrant.scores = sorted(
+            sorted_scores = sorted(
                 entrant.scores,
                 key=lambda x: x.ladder_points(
                     score_floor=self.scoring_floor,
@@ -82,6 +84,7 @@ class LadderTournament(Tournament):
                 ),
                 reverse=True,
             )
+            entrant.set_scores(sorted_scores)
 
     def report_results(
         self,
@@ -114,11 +117,11 @@ class LadderTournament(Tournament):
         rank = 1
         for elem in overall_results:
             col = 1
-            cells.append(Cell(row, col, rank))
+            cells.append(Cell(row, col, str(rank)))
             col += 1
             cells.append(Cell(row, col, elem[1].name))
             col += 1
-            cells.append(Cell(row, col, elem[0]))
+            cells.append(Cell(row, col, str(elem[0])))
             row += 1
             rank += 1
         worksheet.update_cells(cells)
@@ -174,11 +177,11 @@ class LadderTournament(Tournament):
                 col += 1
                 cells.append(Cell(row, col, score.chart.difficulty_display))
                 col += 1
-                cells.append(Cell(row, col, score.chart.difficulty))
+                cells.append(Cell(row, col, str(score.chart.difficulty)))
                 col += 1
-                cells.append(Cell(row, col, score.score))
+                cells.append(Cell(row, col, str(score.score)))
                 col += 1
-                cells.append(Cell(row, col, ladder_points))
+                cells.append(Cell(row, col, str(ladder_points)))
                 row += 1
         worksheet.update_cells(cells)
         return row
@@ -210,7 +213,7 @@ class LadderTournament(Tournament):
                 }
             }
         }"""
-        worksheet.batch_update({"requests": [request]})
+        worksheet.batch_update(data=[{"requests": [request]}])
 
 
 class GauntletTournament(Tournament):
@@ -219,12 +222,12 @@ class GauntletTournament(Tournament):
     def __init__(
         self,
         name: str,
-        start_date: str,
-        end_date: str,
+        start_date: datetime,
+        end_date: datetime,
         attempts_to_count: int,
-        ineligible_difficulty: int = None,
-        ineligible_score: int = None,
-        ineligible_count: int = None,
+        ineligible_difficulty: int | None = None,
+        ineligible_score: int | None = None,
+        ineligible_count: int | None = None,
     ):
         super().__init__(
             name=name,
@@ -255,10 +258,16 @@ class GauntletTournament(Tournament):
                 ))
             results = sf.exec_load_entrant_scores(searches)
             for index in range(len(entrant_names)):
-                self.entrants.append(Entrant(
-                    entrant_names[index],
-                    not len(results[index]) >= self.ineligible_count
-                ))
+                if self.ineligible_count is not None:
+                    self.entrants.append(Entrant(
+                        entrant_names[index],
+                        not len(results[index]) >= self.ineligible_count
+                    ))
+                else:
+                    self.entrants.append(Entrant(
+                        entrant_names[index],
+                        True
+                    ))
 
     def filter_songs_and_charts(self, gauntlet_json) -> None:
         filtered_songs = []
@@ -271,14 +280,14 @@ class GauntletTournament(Tournament):
             ]
             filtered_songs.append(song)
             
-            filtered_charts |= [
+            filtered_charts.extend([
                 chart for chart in self.charts
                 if chart.song_id == song.id
                 and chart.difficulty == filter["difficulty"]
                 and chart.difficulty_name.casefold().startswith(
                     str(filter["difficulty_name"]).casefold()
                 )
-            ]
+            ])
         self.songs = filtered_songs
         self.charts = filtered_charts
 
@@ -312,7 +321,7 @@ class GauntletTournament(Tournament):
                 if score_counter[chart_id] <= self.attempts_to_count:
                     entrant.scores.append(score)
                     score_counter[chart_id] += 1
-            entrant.finalize_scores()
+            entrant.maximize_scores()
     
     """
     Results Table Template
@@ -340,8 +349,8 @@ class GauntletTournament(Tournament):
         col = 2
         cells.append(Cell(row, col, "Eligible for Ranking"))
         col += 1
-        for chart in self.charts:
-            cells.append(Cell(row, col, chart.song_title))
+        for song in self.songs:
+            cells.append(Cell(row, col, song.title))
             col += 1
         worksheet.update_cells(cells)
 
@@ -350,12 +359,12 @@ class GauntletTournament(Tournament):
         col = 1 
         cells.append(Cell(row, col, entrant.name))
         col += 1
-        cells.append(Cell(row, col, entrant.can_compete))
+        cells.append(Cell(row, col, str(entrant.can_compete)))
         for chart in self.charts:
             col += 1
             any_score = [score for score in entrant.scores if score.chart == chart]
             if not any_score:
-                cells.append(Cell(row, col, 0))
+                cells.append(Cell(row, col, str(0)))
             else:
-                cells.append(Cell(row, col, any_score[0].value))
+                cells.append(Cell(row, col, str(any_score[0].score)))
         worksheet.update_cells(cells)

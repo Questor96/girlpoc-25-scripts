@@ -73,5 +73,5 @@ if __name__ == "__main__":
             print(tournament.name)
             for entrant in tournament.entrants:
                 for score in entrant.scores:
-                    print("\t".join([entrant.name, score.chart.song_title, score.value]))
+                    print("\t".join([entrant.name, score.song.title, str(score.score)]))
                 print()

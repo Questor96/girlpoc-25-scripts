@@ -1,6 +1,6 @@
 import asyncio
 import requests
-import datetime
+from datetime import datetime
 import json
 import pprint
 
@@ -13,36 +13,31 @@ from src.Song import Song
 pp = pprint.PrettyPrinter(indent=2)
 
 class ScoreFetcher():
-    debug = False
-    
-    # file store info
-    config_path = './config'
-    data_path = './data'
-    songs: list[Song] = []
-    charts: list[Chart] = []
-    event_loop = None
 
-    def __init__(self, *, debug=None):
-        if debug:
-            self.debug = True
+    def __init__(self, *, debug: bool=False):
+        self.config_path = './config'
+        self.data_path = './data'
+        self.songs: list[Song] = []
+        self.charts: list[Chart] = []
+        self.debug = debug
 
         # initialize event_loop
-        self.event_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.event_loop)
+        self._event_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._event_loop)
         
         # grab song, chart data asynchronously
         coroutines = [
             self.load_songs(),
             self.load_charts(),
         ]
-        [self.songs, self.charts] = self.event_loop.run_until_complete(asyncio.gather(*coroutines))
+        [self.songs, self.charts] = self._event_loop.run_until_complete(asyncio.gather(*coroutines))
         if self.debug:
             print(str(len(self.songs)) + " songs loaded")
             print(str(len(self.charts)) + " charts loaded")
 
 
     def __del__(self):
-        self.event_loop.close()
+        self._event_loop.close()
 
     async def _load_from_url(self, url, params=None):
         # TODO: error handling
@@ -54,7 +49,7 @@ class ScoreFetcher():
             print("url: " + url)
         response = requests.get(url)
         if response.status_code != 200:
-            print(response.status_code, response.reason)
+            print(url, response.status_code, response.reason)
             return {}
         return response.json()
 
@@ -92,7 +87,7 @@ class ScoreFetcher():
         # get previous timestamp from file
         try:
             with open(upd_at_filepath, 'r') as upd_file:
-                prev_upd_at = datetime.datetime.strptime(upd_file.read(), time_fmt)
+                prev_upd_at = datetime.strptime(upd_file.read(), time_fmt)
                 previous_search = True
         except FileNotFoundError:
             previous_search = False
@@ -105,7 +100,7 @@ class ScoreFetcher():
             data: list = []
         
         # grab current timestamp before beginning data operations
-        curr_time = datetime.datetime.now()
+        curr_time = datetime.now()
         
         # query API for data updated since previous timestamp
         params = {}
@@ -125,7 +120,7 @@ class ScoreFetcher():
         
         # save timestamp to file
         with open(upd_at_filepath, "w") as upd_file:
-            upd_file.write(datetime.datetime.strftime(curr_time, time_fmt))
+            upd_file.write(datetime.strftime(curr_time, time_fmt))
 
         return data
 
@@ -162,21 +157,22 @@ class ScoreFetcher():
     async def load_entrant_scores(
             self,
             *,
-            entrant_name:str,
-            start:datetime = None,
-            end:datetime = None,
-            score_gte:int = None,
-            score_lte:int = None,
-            difficulty:list[int] = None,
-            difficulty_name:str = None,
-            chart_ids:list[int] = None,
-            sort_field:str = None,
-            order:str = None,
-            get_max_only:bool = False,
-            take:int = None,
+            entrant_name: str,
+            start: datetime | None = None,
+            end: datetime | None = None,
+            score_gte: int | None = None,
+            score_lte: int | None = None,
+            difficulty: list[int] | None = None,
+            difficulty_name: str | None = None,
+            chart_ids: list[int] | None = None,
+            sort_field: str | None = None,
+            order: str | None = None,
+            get_max_only: bool = False,
+            take: int | None = None,
         ):
         # Required params
-        params = {'gamer.username': entrant_name}
+        params = {}
+        params['gamer.username'] = entrant_name
 
         # Optional params
         if start is not None or end is not None:
@@ -199,14 +195,13 @@ class ScoreFetcher():
         if get_max_only:
             params['_group_by'] = 'song_chart_id'
         self.update_dict_if_not_null(params, '_take', take)
-        
         data = await self.load_scores(params)
         print(f"Returned {len(data)} scores for {entrant_name=}")
         return data
 
 
     def exec_load_entrant_scores(self, coroutines) -> list[list[Score]]:
-        return self.event_loop.run_until_complete(asyncio.gather(*coroutines))
+        return self._event_loop.run_until_complete(asyncio.gather(*coroutines))
 
 
     def update_dict_if_not_null(self, dict, key, value):
@@ -217,22 +212,22 @@ class ScoreFetcher():
     def filter_charts_by_song(self, song_info):
         for song in song_info:
             for s in self.songs:
-                if song['title'].casefold() == s['title'].casefold():
-                    song['id'] = s['id']
+                if song['title'].casefold() == s.title.casefold():
+                    song['id'] = s._id
                     break
         chart_ids = []
         for song in song_info:
             for chart in self.charts:
                 if (
-                    song['id'] == chart['song_id'] 
-                    and song['difficulty'] == chart['difficulty']
+                    song['id'] == chart.song_id
+                    and song['difficulty'] == chart.difficulty
                     and (
                         song.get('difficulty_name') is None
-                        or chart['difficulty_name'].startswith(song['difficulty_name'])
+                        or chart.difficulty_name.startswith(song['difficulty_name'])
                     )
                 ):
-                    chart_ids.append(chart['id'])
-                    song['chart_id'] = chart['id']
+                    chart_ids.append(chart._id)
+                    song['chart_id'] = chart._id
                     break
         return chart_ids
 
@@ -255,8 +250,8 @@ if __name__ == '__main__':
 
     # load event configuration
     #   pull from file eventually
-    start = datetime.date(year=2024, month=11, day=1)
-    end = datetime.date(year=2024, month=11, day=13)
+    start = datetime(year=2024, month=11, day=1)
+    end = datetime(year=2024, month=11, day=13)
     entrants = [
         "Thaya",
         "Hamaon"
@@ -296,4 +291,4 @@ if __name__ == '__main__':
         json.dump(all_results, of)
     for result in all_results:
         for score in result:
-            print(' '.join([score['gamer']['username'], score['song']['title'], str(score['score'])]))
+            print(' '.join([score.gamer.username, score.song.title, str(score.score)]))

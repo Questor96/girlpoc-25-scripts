@@ -29,4 +29,4 @@ class Song:
     updated_at: str  # datetime
     website: str
 
-    music_filename: str = None
+    music_filename: str | None = None
