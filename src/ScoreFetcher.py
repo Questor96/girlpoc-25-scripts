@@ -1,5 +1,5 @@
 import asyncio
-import requests
+import aiohttp
 from datetime import datetime
 import json
 import pprint
@@ -21,40 +21,58 @@ class ScoreFetcher():
         self.charts: list[Chart] = []
         self.debug = debug
 
-        # initialize event_loop
         self._event_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self._event_loop)
-        
-        # grab song, chart data asynchronously
-        coroutines = [
-            self.load_songs(),
-            self.load_charts(),
-        ]
-        [self.songs, self.charts] = self._event_loop.run_until_complete(asyncio.gather(*coroutines))
-        if self.debug:
-            print(str(len(self.songs)) + " songs loaded")
-            print(str(len(self.charts)) + " charts loaded")
-
+        self._session: aiohttp.ClientSession = None
+        self._init_songs_and_charts()
 
     def __del__(self):
         self._event_loop.close()
 
+    def _init_songs_and_charts(self):
+        coroutines = [
+            self.load_songs(),
+            self.load_charts(),
+        ]
+        [self.songs, self.charts] = self._event_loop.run_until_complete(self.run_tasks_in_aiohttp_client(coroutines))
+        if self.debug:
+            print(str(len(self.songs)) + " songs loaded")
+            print(str(len(self.charts)) + " charts loaded")
+
+    async def run_tasks_in_aiohttp_client(self, coroutines):
+        """
+        runs set of async coroutines w/ a aiohttp session
+        session is peeked at from actual point of access, not passed along stack
+        so it's invisible to usage.
+        Pattern of usage -> results = event_loop.run_until_complete(run_tasks_in_aiohttp_client(coroutines))
+        """
+        results = []
+        async with aiohttp.ClientSession() as session:
+            self._session = session
+            for coroutine in coroutines:
+                result = await coroutine
+                results.append(result)
+        self._session = None
+        return results
+
     async def _load_from_url(self, url, params=None):
         # TODO: error handling
+        # grab active session from instance variable
+        session: aiohttp.ClientSession = self._session
         if params is not None:
             if self.debug:
                 pp.pprint(params)
             url = f'{url}?params={json.dumps(params)}'
         if self.debug:
             print("url: " + url)
-        response = requests.get(url)
-        if response.status_code != 200:
-            print(url, response.status_code, response.reason)
+        response = await session.request('GET', url=url)
+        if response.status != 200:
+            print(url, response.status, response.reason)
             return {}
-        return response.json()
+        data = await response.json()
+        return data
 
-
-    async def load_from_url(self, url, params:dict = {}):
+    async def load_from_url(self, url: str, params: dict = {}):
         data = []
         complete = False
         initial_take = params.get('_take', None)
@@ -77,7 +95,6 @@ class ScoreFetcher():
                 complete = True
             
         return data
-        
 
     async def load_data_incremental(self, filepath, base_api_url):
         time_fmt = "%a, %b %d %Y %H:%M:%S"
@@ -124,7 +141,6 @@ class ScoreFetcher():
 
         return data
 
-
     async def load_songs(self) -> list[Song]:
         filepath = self.data_path + '/songs'
         url = 'http://api.smx.573.no/songs'
@@ -132,14 +148,12 @@ class ScoreFetcher():
         data = [Song(**song) for song in data]
         return data
 
-
     async def load_charts(self) -> list[Chart]:
         filepath = self.data_path + '/charts'
         url = 'http://api.smx.573.no/charts'
         data = await self.load_data_incremental(filepath, url)
         data = [Chart(**chart) for chart in data]
         return data
-
 
     async def load_scores(self, params):
         url = 'http://api.smx.573.no/scores'
@@ -151,7 +165,6 @@ class ScoreFetcher():
             raw_score["gamer"] = Gamer(**raw_score["gamer"])
             scores.append(Score(**raw_score))
         return scores
-
 
     # specific support for certain fields
     async def load_entrant_scores(
@@ -199,15 +212,12 @@ class ScoreFetcher():
         print(f"Returned {len(data)} scores for {entrant_name=}")
         return data
 
-
     def exec_load_entrant_scores(self, coroutines) -> list[list[Score]]:
-        return self._event_loop.run_until_complete(asyncio.gather(*coroutines))
-
+        return self._event_loop.run_until_complete(self.run_tasks_in_aiohttp_client(coroutines))
 
     def update_dict_if_not_null(self, dict, key, value):
         if value is not None:
             dict[key] = value
-
 
     def filter_charts_by_song(self, song_info):
         for song in song_info:
