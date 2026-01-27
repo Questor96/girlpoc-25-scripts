@@ -6,6 +6,7 @@ from datetime import datetime
 import gspread_formatting as gsf
 from gspread.client import Client as GSClient
 from gspread.cell import Cell
+from gspread.spreadsheet import Spreadsheet
 
 from gcs.gspread_auth import gspread_auth
 from src.Tournament import GauntletTournament
@@ -18,14 +19,11 @@ def load_from_json(path) -> Any:
     with open(path) as file:
         return json.load(file)
 
-def make_and_run_gauntlet_tournament(
+def make_gauntlet_tournament_from_json(
     event_folder: Path,
-    gspread_client: GSClient,
     event_json_name: str,
 ) -> GauntletTournament:
-    spreadsheet_info: dict = load_from_json(event_folder / "result_spreadsheet_key.json")
     entrants: list = load_from_json(event_folder / "entrants.json")
-    result_spreadsheet = gspread_client.open_by_key(spreadsheet_info["key"])
     base_json: dict = load_from_json(event_folder / event_json_name)
     config: dict = base_json["config"]
     charts: list[dict] = base_json["charts"]
@@ -49,11 +47,17 @@ def make_and_run_gauntlet_tournament(
         attempts_to_count=config["attempts_to_count"],
         ineligible_requirements=eligibility_config,
     )
+    # do chart and entrant initialization
     tournament.filter_songs_and_charts(charts)
     tournament.load_entrants(entrants)
-    tournament.get_all_scores()
-    tournament.report_results(result_spreadsheet.worksheet(event_name))
     return tournament
+
+def run_gauntlet_tournament(
+    tournament: GauntletTournament,
+    result_spreadsheet: Spreadsheet
+):
+    tournament.get_all_scores()
+    tournament.report_results(result_spreadsheet.worksheet(tournament.name))
 
 def make_eligibility_spreadsheet(
     gspread_client: GSClient,
@@ -110,34 +114,23 @@ def make_eligibility_spreadsheet(
 if __name__ == "__main__":
     event_folder = Path("./girlpoc-jan-26")
     gs = gspread_auth()
+    spreadsheet_info: dict = load_from_json(event_folder / "result_spreadsheet_key.json")
+    result_spreadsheet = gs.open_by_key(spreadsheet_info["key"])
 
-    ht = make_and_run_gauntlet_tournament(
-        event_folder=event_folder,
-        gspread_client=gs,
-        event_json_name="hard.json",
-    )
-    hpt = make_and_run_gauntlet_tournament(
-        event_folder=event_folder,
-        gspread_client=gs,
-        event_json_name="hard-plus.json",
-    )
-    iwt = make_and_run_gauntlet_tournament(
-        event_folder=event_folder,
-        gspread_client=gs,
-        event_json_name="intro-wild.json",
-    )
-    wt = make_and_run_gauntlet_tournament(
-        event_folder=event_folder,
-        gspread_client=gs,
-        event_json_name="wild.json",
-    )
-    wpt = make_and_run_gauntlet_tournament(
-        event_folder=event_folder,
-        gspread_client=gs,
-        event_json_name="wild-plus.json",
-    )
-
+    event_jsons = [
+        "hard.json",
+        "hard-plus.json",
+        "intro-wild.json",
+        "wild.json",
+        "wild-plus.json",
+    ]
+    tournaments = [
+        make_gauntlet_tournament_from_json(event_folder, event_json)
+        for event_json in event_jsons
+    ]
     make_eligibility_spreadsheet(
         gspread_client=gs,
-        tournaments=[ht, hpt, iwt, wt, wpt],
+        tournaments=tournaments,
     )
+    for tournament in tournaments:
+        run_gauntlet_tournament(tournament, result_spreadsheet)
