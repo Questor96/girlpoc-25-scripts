@@ -1,9 +1,10 @@
 from src.Score import Score
+from src.Eligibility import Eligibility
 
 class Entrant:
-    def __init__(self, name: str, eligible_for_ranking: bool):
+    def __init__(self, name: str, eligibilities: list[Eligibility]):
         self.name = name
-        self.eligible_for_ranking = eligible_for_ranking
+        self.eligiblities = eligibilities
         self._scores: list[Score] = []
 
     @property
@@ -15,7 +16,7 @@ class Entrant:
 
     @property
     def can_compete(self) -> bool:
-        return self.eligible_for_ranking
+        return all([eligibility.eligible for eligibility in self.eligiblities])
     
     @property
     def has_scores(self) -> bool:

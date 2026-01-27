@@ -4,6 +4,7 @@ from src.Chart import Chart
 from src.Entrant import Entrant
 from src.Song import Song
 from src.ScoreFetcher import ScoreFetcher
+from src.Eligibility import EligibilityConfig, Eligibility
 
 from gspread.spreadsheet import Spreadsheet
 from gspread.worksheet import Worksheet
@@ -29,7 +30,7 @@ class Tournament:
     
     def load_entrants(self, entrant_names):
         self.entrants = [
-            Entrant(name, True)
+            Entrant(name, [Eligibility(True)])
             for name in entrant_names
         ]
 
@@ -225,9 +226,7 @@ class GauntletTournament(Tournament):
         start_date: datetime,
         end_date: datetime,
         attempts_to_count: int,
-        ineligible_difficulty: int | None = None,
-        ineligible_score: int | None = None,
-        ineligible_count: int | None = None,
+        ineligible_requirements: list[EligibilityConfig] | None = None,
     ):
         super().__init__(
             name=name,
@@ -235,39 +234,55 @@ class GauntletTournament(Tournament):
             end_date=end_date
         )
         self.attempts_to_count = attempts_to_count
-        self.ineligible_difficulty = ineligible_difficulty
-        self.ineligible_score = ineligible_score
-        self.ineligible_count = ineligible_count
+        self.ineligible_requirements = ineligible_requirements
     
     @property
     def chart_ids(self):
         return [chart.id for chart in self.charts]
 
     def load_entrants(self, entrant_names):
-        if not self.ineligible_score or not self.ineligible_difficulty:
+        if not self.ineligible_requirements:  # shortcircuit if we don't need to check eligibility
             super().load_entrants(entrant_names=entrant_names)
-        else:
-            searches = []
-            for name in entrant_names:
+            return
+
+        searches = []
+        name_to_result_map = {
+            name: []
+            for name in entrant_names
+        }
+        result_index = 0
+        for name in entrant_names:
+            for requirement in self.ineligible_requirements:
                 searches.append(sf.load_entrant_scores(
                     entrant_name=name,
-                    difficulty=list(range(self.ineligible_difficulty, self.max_difficulty)),
-                    score_gte=self.ineligible_score,
+                    difficulty=list(range(requirement.difficulty, self.max_difficulty)),
+                    score_gte=requirement.score,
                     end=self.start_date,  # only disqualify based on scores beforehand
-                    take=self.ineligible_count if self.ineligible_count is not None else 1
+                    take=requirement.count,
                 ))
-            results = sf.exec_load_entrant_scores(searches)
-            for index in range(len(entrant_names)):
-                if self.ineligible_count is not None:
-                    self.entrants.append(Entrant(
-                        entrant_names[index],
-                        not len(results[index]) >= self.ineligible_count
-                    ))
-                else:
-                    self.entrants.append(Entrant(
-                        entrant_names[index],
-                        True
-                    ))
+                name_to_result_map[name].append({"index": result_index, "requirement": requirement})
+                result_index += 1
+        results = sf.exec_load_entrant_scores(searches)
+        for name, result_info in name_to_result_map.items():
+            player_eligibilities = []
+            element: dict
+            for element in result_info:
+                index: int = element["index"]
+                requirement: EligibilityConfig = element["requirement"]
+                player_eligibilities.append(
+                    Eligibility(
+                        eligible=not len(results[index]) >= requirement.count,
+                        difficulty=requirement.difficulty,
+                        score=str(requirement.score) + "+",
+                        count=requirement.count,
+                    )
+                )
+            self.entrants.append(
+                Entrant(
+                    name=name,
+                    eligibilities=player_eligibilities,
+                )
+            )
 
     def filter_songs_and_charts(self, gauntlet_json) -> None:
         filtered_songs = []
@@ -362,7 +377,7 @@ class GauntletTournament(Tournament):
         cells.append(Cell(row, col, str(entrant.can_compete)))
         for chart in self.charts:
             col += 1
-            any_score = [score for score in entrant.scores if score.chart == chart]
+            any_score = [score for score in entrant.scores if score.chart.id == chart.id]
             if not any_score:
                 cells.append(Cell(row, col, str(0)))
             else:

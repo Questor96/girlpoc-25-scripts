@@ -1,76 +1,76 @@
 {
     "config": {
-        "name": "Ladybug (Hard)",
+        "name": "Bumblee Bee (Hard)",
         "start_date": "2026-01-30",
         "end_date": "2026-02-22",
         "attempts_to_count": 3,
         "disqualify_if": [
             {
                 "score_gte": 99000,
-                "difficulty": 15,
+                "difficulty": 18,
                 "count": 10
             },
             {
                 "score_gte": 99725,
-                "difficulty": 15,
+                "difficulty": 18,
                 "count": 5
             },
             {
                 "score_gte": 100000,
-                "difficulty": 14,
+                "difficulty": 17,
                 "count": 3
             }
         ]
     },
     "charts": [
         {
-            "title": "No Rules",
-            "difficulty": 13,
-            "difficulty_name": "hard"
-        },
-        {
-            "title": "My Heart is Ticking Like a Bomb",
-            "difficulty": 13,
-            "difficulty_name": "hard"
-        },
-        {
-            "title": "Alamo Drop Blues",
-            "difficulty": 14,
-            "difficulty_name": "hard"
-        },
-        {
-            "title": "Bella Ciao",
-            "difficulty": 14,
-            "difficulty_name": "hard"
-        },
-        {
-            "title": "Death By Glamour",
-            "difficulty": 14,
-            "difficulty_name": "hard"
-        },
-        {
-            "title": "Ladybug",
-            "difficulty": 15,
-            "difficulty_name": "hard"
-        },
-        {
-            "title": "Rom-eo & Juli8",
-            "difficulty": 15,
-            "difficulty_name": "hard"
-        },
-        {
-            "title": "Pump It",
-            "difficulty": 15,
-            "difficulty_name": "hard"
-        },
-        {
-            "title": "Boogie Shoes",
+            "title": "Baila Bolero",
             "difficulty": 16,
             "difficulty_name": "hard"
         },
         {
-            "title": "Flash in the Night",
+            "title": "Dream A Dream",
             "difficulty": 16,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Bumble Bee",
+            "difficulty": 17,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Letting Go",
+            "difficulty": 17,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Dystopia 2077",
+            "difficulty": 17,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Busted",
+            "difficulty": 18,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Frontal Impact",
+            "difficulty": 18,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "DMT",
+            "difficulty": 18,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "Redshift",
+            "difficulty": 19,
+            "difficulty_name": "hard"
+        },
+        {
+            "title": "RAD",
+            "difficulty": 19,
             "difficulty_name": "hard"
         }
     ]
