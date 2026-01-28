@@ -8,6 +8,7 @@ gspread = "*"
 pandas = "*"
 gspread-formatting = "*"
 aiohttp = "*"
+pyyaml = "*"
 
 [dev-packages]
 ruff = "*"

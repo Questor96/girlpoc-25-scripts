@@ -23,7 +23,7 @@ class ScoreFetcher():
 
         self._event_loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self._event_loop)
-        self._session: aiohttp.ClientSession = None
+        self._session: aiohttp.ClientSession = None  # establish placeholder parameter
         self._init_songs_and_charts()
 
     def __del__(self):
@@ -52,7 +52,7 @@ class ScoreFetcher():
             for coroutine in coroutines:
                 result = await coroutine
                 results.append(result)
-        self._session = None
+        self._session = None  # reset after close
         return results
 
     async def _load_from_url(self, url, params=None):
@@ -240,65 +240,3 @@ class ScoreFetcher():
                     song['chart_id'] = chart._id
                     break
         return chart_ids
-
-
-"""
-Useful fields
-
-songs.title, songs.subtitle - plaintext names of song
-
-songs.id == charts.song_id
-
-charts.id - used for looking up scores for specific charts
-charts.is_enabled - check this for valid officials
-charts.difficulty - block rating
-"""
-if __name__ == '__main__':
-    debug = True
-    
-    sf = ScoreFetcher()
-
-    # load event configuration
-    #   pull from file eventually
-    start = datetime(year=2024, month=11, day=1)
-    end = datetime(year=2024, month=11, day=13)
-    entrants = [
-        "Thaya",
-        "Hamaon"
-    ]
-    song_info = [
-        {"title": "Stars", "difficulty": 24},
-        {"title": "Ring the Alarm", "difficulty": 22},
-        {"title": "Do My Thing", "difficulty": 20}
-    ]
-    num_tries_to_count = 3
-    sort = 'created_at'
-    order = 'asc'
-
-
-    # Find chart ids based on event song_info
-    # these suck lmao, how do I write them more effectively
-    chart_ids = sf.filter_charts_by_song(song_info)
-
-    
-    # load score data asynchronously
-    searches = []
-    for entrant in entrants:
-        for chart_id in chart_ids:
-            searches.append(
-                sf.load_entrant_scores(
-                    entrant_name=entrant,
-                    start=start,
-                    end=end,
-                    chart_ids=chart_id,
-                    sort_field=sort,
-                    order=order,
-                    take=num_tries_to_count
-                )
-            )
-    all_results = sf.exec_load_entrant_scores(searches)
-    with open('test_bulk.json', 'w') as of:
-        json.dump(all_results, of)
-    for result in all_results:
-        for score in result:
-            print(' '.join([score.gamer.username, score.song.title, str(score.score)]))

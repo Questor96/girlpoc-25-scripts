@@ -1,0 +1,46 @@
+config:
+  name: Pink Dinosaur (Wild)
+  start_date: 2026-01-30
+  end_date: 2026-02-22
+  attempts_to_count: 3
+  disqualify_if:
+  - score_gte: 99000
+    difficulty: 21
+    count: 10
+  - score_gte: 99725
+    difficulty: 21
+    count: 5
+  - score_gte: 100000
+    difficulty: 20
+    count: 3
+charts:
+- title: Pink Dinosaur
+  difficulty: 19
+  difficulty_name: wild
+- title: The Banana Song
+  difficulty: 19
+  difficulty_name: wild
+- title: Orbit
+  difficulty: 19
+  difficulty_name: wild
+- title: Breathe Me Back To Life
+  difficulty: 20
+  difficulty_name: wild
+- title: Hip Hop Jam
+  difficulty: 20
+  difficulty_name: wild
+- title: Ping Pong
+  difficulty: 20
+  difficulty_name: wild
+- title: Tick Tock
+  difficulty: 20
+  difficulty_name: wild
+- title: Let's Go! (This Is It)
+  difficulty: 21
+  difficulty_name: wild
+- title: How We Win
+  difficulty: 21
+  difficulty_name: wild
+- title: Proper Rhythm
+  difficulty: 21
+  difficulty_name: wild

@@ -1,0 +1,46 @@
+config:
+  name: Ladybug (Hard)
+  start_date: 2026-01-30
+  end_date: 2026-02-22
+  attempts_to_count: 3
+  disqualify_if:
+  - score_gte: 99000
+    difficulty: 15
+    count: 10
+  - score_gte: 99725
+    difficulty: 15
+    count: 5
+  - score_gte: 100000
+    difficulty: 14
+    count: 3
+charts:
+- title: No Rules
+  difficulty: 13
+  difficulty_name: hard
+- title: My Heart is Ticking Like a Bomb
+  difficulty: 13
+  difficulty_name: hard
+- title: Alamo Drop Blues
+  difficulty: 14
+  difficulty_name: hard
+- title: Bella Ciao
+  difficulty: 14
+  difficulty_name: hard
+- title: Death By Glamour
+  difficulty: 14
+  difficulty_name: hard
+- title: Ladybug
+  difficulty: 15
+  difficulty_name: hard
+- title: Rom-eo & Juli8
+  difficulty: 15
+  difficulty_name: hard
+- title: Pump It
+  difficulty: 15
+  difficulty_name: hard
+- title: Boogie Shoes
+  difficulty: 16
+  difficulty_name: hard
+- title: Flash in the Night
+  difficulty: 16
+  difficulty_name: hard

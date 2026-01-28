@@ -1,0 +1,46 @@
+config:
+  name: Funky Dolphin (Wild)
+  start_date: 2026-01-30
+  end_date: 2026-02-22
+  attempts_to_count: 3
+  disqualify_if:
+  - score_gte: 99000
+    difficulty: 23
+    count: 10
+  - score_gte: 99725
+    difficulty: 23
+    count: 5
+  - score_gte: 100000
+    difficulty: 21
+    count: 3
+charts:
+- title: I Don't Wanna Fall
+  difficulty: 21
+  difficulty_name: wild
+- title: Where Did You Go
+  difficulty: 21
+  difficulty_name: wild
+- title: Sengoku
+  difficulty: 21
+  difficulty_name: wild
+- title: In The Echo
+  difficulty: 22
+  difficulty_name: wild
+- title: Never Let You Down
+  difficulty: 22
+  difficulty_name: wild
+- title: Mm-Hmm
+  difficulty: 22
+  difficulty_name: wild
+- title: Total Nuclear Annihilation
+  difficulty: 22
+  difficulty_name: wild
+- title: Dolphin Talk
+  difficulty: 23
+  difficulty_name: wild
+- title: Worn Out Tapes
+  difficulty: 23
+  difficulty_name: wild
+- title: MEANT 2 BE
+  difficulty: 23
+  difficulty_name: wild

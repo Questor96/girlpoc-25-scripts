@@ -1,4 +1,5 @@
 from datetime import datetime
+from abc import ABC, abstractmethod
 
 from src.Chart import Chart
 from src.Entrant import Entrant
@@ -9,11 +10,12 @@ from src.Eligibility import EligibilityConfig, Eligibility
 from gspread.spreadsheet import Spreadsheet
 from gspread.worksheet import Worksheet
 from gspread.cell import Cell
+import gspread_formatting as gsf
 
 sf = ScoreFetcher()
 sf.debug = False
 
-class Tournament:
+class Tournament(ABC):
     def __init__(
         self,
         name: str,
@@ -28,14 +30,41 @@ class Tournament:
         
         self.entrants: list[Entrant] = []
     
-    def load_entrants(self, entrant_names):
+    def load_entrants(self, entrant_names: list[str]):
+        """
+        Loads all entrants as eligible for the tournament
+        
+        :param entrant_names: List of names of entrants
+        :type entrant_names: list[str]
+        """
         self.entrants = [
             Entrant(name, [Eligibility(True)])
             for name in entrant_names
         ]
 
+    def run(self, result_spreadsheet: Spreadsheet):
+        self.get_all_scores()
+        self.report_results(result_spreadsheet)
+
+    @abstractmethod
     def get_all_scores(self):
-        # implemented by each tournament
+        """
+        Retrieves all scores for entrants, based on configuration of Tournament
+        """
+        # must be implemented by each tournament
+        pass
+
+    @abstractmethod
+    def report_results(self, spreadsheet: Spreadsheet):
+        """
+        Report all tournament results in the target spreadsheet.
+
+        Worksheets should be determined by Tournament configuration.
+        
+        :param spreadsheet: Spreadsheet to send results
+        :type spreadsheet: Spreadsheet
+        """
+        # must be implemented by each tournament
         pass
 
 class LadderTournament(Tournament):
@@ -63,9 +92,12 @@ class LadderTournament(Tournament):
             end_date=end_date,
         )
 
+    # Implement abstract methods
     def get_all_scores(self):
         """
-        Get best score for every chart
+        For each entrant, retrieves the best score on each chart played during the Tournament.
+
+        Filtering is controlled by LadderTournament configuration.
         """
         searches = []
         for entrant in self.entrants:
@@ -82,6 +114,16 @@ class LadderTournament(Tournament):
             entrant.set_scores(results[index])
         self._order_scores_by_ladder_points()
 
+    def report_results(
+        self,
+        spreadsheet: Spreadsheet,
+    ):
+        overall_sheet = spreadsheet.worksheet(self.overall_results_sheet_name)
+        self._report_overall_results(overall_sheet)
+        detail_sheet = spreadsheet.worksheet(self.score_details_sheet_name)
+        self._report_score_details(detail_sheet)
+
+    # Private helpers
     def _order_scores_by_ladder_points(self):
         for entrant in self.entrants:
             sorted_scores = sorted(
@@ -93,20 +135,12 @@ class LadderTournament(Tournament):
                 reverse=True,
             )
             entrant.set_scores(sorted_scores)
-
-    def report_results(
-        self,
-        spreadsheet: Spreadsheet,
-    ):
-        overall_sheet = spreadsheet.worksheet(self.overall_results_sheet_name)
-        self._report_overall_results(overall_sheet)
-        detail_sheet = spreadsheet.worksheet(self.score_details_sheet_name)
-        self._report_score_details(detail_sheet)
     
     def _report_overall_results(self, worksheet: Worksheet):
         start_row = 1
         current_row = self._write_overall_header_to_worksheet(worksheet, start_row)
         current_row = self._write_overall_data_to_worksheet(worksheet, current_row)
+        self._format_overall_data_worksheet(worksheet)
     
     def _write_overall_header_to_worksheet(self, worksheet: Worksheet, row):
         cells = [
@@ -133,6 +167,10 @@ class LadderTournament(Tournament):
         if cells:
             worksheet.update_cells(cells)
         return row
+    
+    def _format_overall_data_worksheet(self, worksheet: Worksheet):
+        gsf.set_frozen(worksheet, rows=1)
+        # Add additional formatting as necessary
 
     def _calculate_overall_results(self) -> list[tuple[float, Entrant]]:
         overall_results = []
@@ -155,6 +193,7 @@ class LadderTournament(Tournament):
         start_row = 1
         current_row = self._write_detail_header_to_worksheet(worksheet, start_row)
         current_row = self._write_detail_data_to_worksheet(worksheet, current_row)
+        self._format_detail_data_worksheet(worksheet)
         # self._apply_filter_to_detail_worksheet(worksheet)  # TODO: Fix this!!
 
     def _write_detail_header_to_worksheet(self, worksheet: Worksheet, row):
@@ -194,7 +233,12 @@ class LadderTournament(Tournament):
             worksheet.update_cells(cells)
         return row
 
+    def _format_detail_data_worksheet(self, worksheet: Worksheet):
+        gsf.set_frozen(worksheet, rows=1)
+        # Add additional formatting as necessary
+
     def _apply_filter_to_detail_worksheet(self, worksheet: Worksheet):
+        # NOT ACTUALLY IMPLEMENTED!!!
         # TODO: Figure this ish out
         request = {
             "setBasicFilter": {
@@ -247,6 +291,7 @@ class GauntletTournament(Tournament):
     def chart_ids(self):
         return [chart.id for chart in self.charts]
 
+    # Implement abstract methods
     def load_entrants(self, entrant_names):
         if not self.ineligible_requirements:  # shortcircuit if we don't need to check eligibility
             super().load_entrants(entrant_names=entrant_names)
@@ -291,28 +336,6 @@ class GauntletTournament(Tournament):
                 )
             )
 
-    def filter_songs_and_charts(self, gauntlet_json) -> None:
-        filtered_songs = []
-        filtered_charts = []
-        for filter in gauntlet_json:
-            [song] = [
-                song for song in self.songs 
-                if song.title.casefold() == str(filter["title"]).casefold()
-                or song.subtitle.casefold() == str(filter["title"]).casefold()
-            ]
-            filtered_songs.append(song)
-            
-            filtered_charts.extend([
-                chart for chart in self.charts
-                if chart.song_id == song.id
-                and chart.difficulty == filter["difficulty"]
-                and chart.difficulty_name.casefold().startswith(
-                    str(filter["difficulty_name"]).casefold()
-                )
-            ])
-        self.songs = filtered_songs
-        self.charts = filtered_charts
-
     def get_all_scores(self) -> None:
         """
         Best score submitted within the first `attempts_to_count` attempts
@@ -344,17 +367,17 @@ class GauntletTournament(Tournament):
                     entrant.scores.append(score)
                     score_counter[chart_id] += 1
             entrant.maximize_scores()
-    
-    """
-    Results Table Template
-        1           2       3       4       ...
-    1   <empty>     song1   song2   song3   ...
-    2   entrant_name score1  score2  score3
-    3   entrant_name score1  score2  score3
-    N
-    """
 
-    def report_results(self, worksheet: Worksheet) -> None:
+    def report_results(self, spreadsheet: Spreadsheet) -> None:
+        """
+        Results Table Template
+            1           2       3       4       ...
+        1   <empty>     song1   song2   song3   ...
+        2   entrant_name score1  score2  score3
+        3   entrant_name score1  score2  score3
+        N
+        """
+        worksheet = spreadsheet.worksheet(self.name)
         row = 1
         self._write_results_header_to_worksheet(worksheet, row)
         for entrant in self.entrants:
@@ -365,6 +388,31 @@ class GauntletTournament(Tournament):
             if entrant.has_scores and not entrant.can_compete:
                 row += 1
                 self._write_results_row_to_worksheet(worksheet, row, entrant)
+
+
+    # Additional public methods
+    def filter_songs_and_charts(self, gauntlet_json: list[dict]) -> None:
+        filtered_songs = []
+        filtered_charts = []
+        for filter_ in gauntlet_json:
+            [song] = [
+                song for song in self.songs 
+                if song.title.casefold() == str(filter_["title"]).casefold()
+                or song.subtitle.casefold() == str(filter_["title"]).casefold()
+            ]
+            filtered_songs.append(song)
+            
+            filtered_charts.extend([
+                chart for chart in self.charts
+                if chart.song_id == song.id
+                and chart.difficulty == filter_["difficulty"]
+                and chart.difficulty_name.casefold().startswith(
+                    str(filter_["difficulty_name"]).casefold()
+                )
+            ])
+        self.songs = filtered_songs
+        self.charts = filtered_charts
+
 
     def _write_results_header_to_worksheet(self, worksheet: Worksheet, row: int) -> None:
         cells = []
