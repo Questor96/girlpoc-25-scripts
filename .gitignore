@@ -5,6 +5,9 @@ __pycache__
 # Local data caching
 data/*
 
+# Local log files
+logs/*
+
 # GCS Authorization
 gcs_client_secrets.json
 gcs_service_account_secrets.json
