@@ -14,7 +14,7 @@ DEBUG = False
 # Event configuration details
 EVENT_FOLDER = Path(__file__).parent / "girlpoc-jan-26"
 ENTRANTS_CONFIG_FILENAME = "entrants.yaml"
-SPREADSHEET_CONFIG = "result_spreadsheet.yaml"
+SPREADSHEET_CONFIG = "result_spreadsheet_key.yaml"
 GAUNTLET_CONFIGS = [
     "hard.yaml",
     "hard-plus.yaml",
