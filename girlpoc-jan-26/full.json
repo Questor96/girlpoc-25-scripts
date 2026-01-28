@@ -1,0 +1,10 @@
+{
+    "start_date": "2026-01-30",
+    "end_date": "2026-02-22",
+    "scoring_floor": 0,
+    "ladder_point_scalar": 3.0,
+    "num_scores_to_count": 20,
+    "overall_results_sheet_name": "Full Overall Results",
+    "score_details_sheet_name": "Full Score Details",
+    "restrict_to_difficulty_name": "full"
+}

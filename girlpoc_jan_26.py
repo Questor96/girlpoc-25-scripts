@@ -9,7 +9,7 @@ from gspread.cell import Cell
 from gspread.spreadsheet import Spreadsheet
 
 from gcs.gspread_auth import gspread_auth
-from src.Tournament import GauntletTournament
+from src.Tournament import GauntletTournament, LadderTournament, Tournament
 from src.Eligibility import EligibilityConfig
 
 debug = False
@@ -52,18 +52,41 @@ def make_gauntlet_tournament_from_json(
     tournament.load_entrants(entrants)
     return tournament
 
-def run_gauntlet_tournament(
-    tournament: GauntletTournament,
+def make_ladder_tournament(
+    event_folder: Path,
+    event_json_name: str,
+):
+    entrants: list = load_from_json(event_folder / "entrants.json")
+    config: dict = load_from_json(event_folder / event_json_name)
+    tournament = LadderTournament(
+        name = "Full",
+        start_date=config["start_date"],
+        end_date=config["end_date"],
+        scoring_floor=config["scoring_floor"],
+        ladder_point_scalar=config["ladder_point_scalar"],
+        num_scores_to_count=config["num_scores_to_count"],
+        overall_results_sheet_name=config["overall_results_sheet_name"],
+        score_details_sheet_name=config["score_details_sheet_name"],
+        restrict_to_difficulty_name=config["restrict_to_difficulty_name"],
+    )
+    tournament.load_entrants(entrants)
+    return tournament
+
+def run_tournament(
+    tournament: GauntletTournament | LadderTournament,
     result_spreadsheet: Spreadsheet
 ):
     tournament.get_all_scores()
-    tournament.report_results(result_spreadsheet.worksheet(tournament.name))
+    if isinstance(tournament, GauntletTournament):
+        tournament.report_results(result_spreadsheet.worksheet(tournament.name))
+    if isinstance(tournament, LadderTournament):
+        tournament.report_results(result_spreadsheet)
 
 def make_eligibility_spreadsheet(
     gspread_client: GSClient,
     tournaments: list[GauntletTournament],
 ):
-    spreadsheet_info: dict = load_from_json(event_folder / "eligibility_spreadsheet_key.json")
+    spreadsheet_info: dict = load_from_json(event_folder / "result_spreadsheet_key.json")
     result_spreadsheet = gspread_client.open_by_key(spreadsheet_info["key"])
     worksheet = result_spreadsheet.worksheet("Bracket Eligibility")
     cells = []
@@ -133,4 +156,6 @@ if __name__ == "__main__":
         tournaments=tournaments,
     )
     for tournament in tournaments:
-        run_gauntlet_tournament(tournament, result_spreadsheet)
+        run_tournament(tournament, result_spreadsheet)
+
+    run_tournament(make_ladder_tournament(event_folder, "full.json"), result_spreadsheet)

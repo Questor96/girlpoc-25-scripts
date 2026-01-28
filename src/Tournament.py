@@ -47,10 +47,16 @@ class LadderTournament(Tournament):
         scoring_floor: int = 0,
         ladder_point_scalar: float = 2.0,
         num_scores_to_count: int = 20,
+        overall_results_sheet_name: str = "Overall Results",
+        score_details_sheet_name: str = "Score Details",
+        restrict_to_difficulty_name: str | None = None,
     ):
         self.scoring_floor = scoring_floor
         self.ladder_point_scalar = ladder_point_scalar
         self.num_scores_to_count = num_scores_to_count
+        self.overall_results_sheet_name = overall_results_sheet_name
+        self.score_details_sheet_name = score_details_sheet_name
+        self.restrict_to_difficulty_name = restrict_to_difficulty_name
         super().__init__(
             name=name,
             start_date=start_date,
@@ -67,6 +73,7 @@ class LadderTournament(Tournament):
                 entrant_name=entrant.name,
                 start=self.start_date,
                 end=self.end_date,
+                difficulty_name=self.restrict_to_difficulty_name,
                 get_max_only=True,
             ))
         results = sf.exec_load_entrant_scores(searches)
@@ -90,13 +97,11 @@ class LadderTournament(Tournament):
     def report_results(
         self,
         spreadsheet: Spreadsheet,
-        overall_results_sheet_name: str,
-        detail_results_sheet_name: str,
     ):
-        overall_sheet = spreadsheet.worksheet(overall_results_sheet_name)
+        overall_sheet = spreadsheet.worksheet(self.overall_results_sheet_name)
         self._report_overall_results(overall_sheet)
-        detail_sheet = spreadsheet.worksheet(detail_results_sheet_name)
-        self._report_detail_results(detail_sheet)
+        detail_sheet = spreadsheet.worksheet(self.score_details_sheet_name)
+        self._report_score_details(detail_sheet)
     
     def _report_overall_results(self, worksheet: Worksheet):
         start_row = 1
@@ -125,7 +130,8 @@ class LadderTournament(Tournament):
             cells.append(Cell(row, col, str(elem[0])))
             row += 1
             rank += 1
-        worksheet.update_cells(cells)
+        if cells:
+            worksheet.update_cells(cells)
         return row
 
     def _calculate_overall_results(self) -> list[tuple[float, Entrant]]:
@@ -145,7 +151,7 @@ class LadderTournament(Tournament):
         )
         return overall_results
 
-    def _report_detail_results(self, worksheet: Worksheet):
+    def _report_score_details(self, worksheet: Worksheet):
         start_row = 1
         current_row = self._write_detail_header_to_worksheet(worksheet, start_row)
         current_row = self._write_detail_data_to_worksheet(worksheet, current_row)
@@ -184,7 +190,8 @@ class LadderTournament(Tournament):
                 col += 1
                 cells.append(Cell(row, col, str(ladder_points)))
                 row += 1
-        worksheet.update_cells(cells)
+        if cells:
+            worksheet.update_cells(cells)
         return row
 
     def _apply_filter_to_detail_worksheet(self, worksheet: Worksheet):
