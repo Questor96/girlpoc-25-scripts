@@ -42,9 +42,9 @@ class Score:
         self,
         score_floor: int = 0,
         difficulty_scaling: float = 2.0,
+        divisor: float = 1000.0
     ) -> float:
-        
         return max(
-            (self.score - score_floor) * (self.chart.difficulty ** difficulty_scaling) / 1000,
+            (self.score - score_floor) * (self.chart.difficulty ** difficulty_scaling) / divisor,
             0
         )

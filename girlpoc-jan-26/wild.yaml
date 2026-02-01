@@ -1,7 +1,7 @@
 config:
   name: Funky Dolphin (Wild)
-  start_date: 2026-01-30
-  end_date: 2026-02-22
+  start_date: 2026-01-30T00:00:00-05:00
+  end_date: 2026-02-22T00:00:00-05:00
   attempts_to_count: 3
   disqualify_if:
   - score_gte: 99000

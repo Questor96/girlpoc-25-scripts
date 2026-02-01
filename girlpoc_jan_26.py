@@ -1,12 +1,12 @@
 from pathlib import Path
 
 from gcs.gspread_auth import gspread_auth
-from src.helpers import (
-    load_config_file,
+from src.Tournament import (
+    GauntletTournament,
+    LadderTournament,
     make_eligibility_spreadsheet_for_gauntlet_tournaments,
-    make_gauntlet_tournament_from_config,
-    make_ladder_tournament_from_config,
 )
+from src.helpers import load_config_file
 
 
 DEBUG = False
@@ -31,16 +31,22 @@ if __name__ == "__main__":
     result_spreadsheet = gs.open_by_key(spreadsheet_key)
 
     gts = [
-        make_gauntlet_tournament_from_config(EVENT_FOLDER, event_config_filename, ENTRANTS_CONFIG_FILENAME)
+        GauntletTournament.from_config_file(
+            config_filepath=EVENT_FOLDER / event_config_filename,
+            entrant_filepath=EVENT_FOLDER / ENTRANTS_CONFIG_FILENAME,
+        )
         for event_config_filename in GAUNTLET_CONFIGS
     ]
-    make_eligibility_spreadsheet_for_gauntlet_tournaments(
-        result_spreadsheet=result_spreadsheet,
-        tournaments=gts,
-    )
+    if gts:
+        make_eligibility_spreadsheet_for_gauntlet_tournaments(
+            result_spreadsheet=result_spreadsheet,
+            tournaments=gts,
+        )
     lts = [
-        make_ladder_tournament_from_config(EVENT_FOLDER, event_config_filename, ENTRANTS_CONFIG_FILENAME)
-        for event_config_filename in LADDER_CONFIGS
+        LadderTournament.from_config_file(
+            config_filepath=EVENT_FOLDER / event_config_filename,
+            entrant_filepath=EVENT_FOLDER / ENTRANTS_CONFIG_FILENAME,
+        )for event_config_filename in LADDER_CONFIGS
     ]
     for tournament in gts + lts:
         tournament.run(result_spreadsheet)

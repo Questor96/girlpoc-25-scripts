@@ -1,8 +1,13 @@
-start_date: 2026-01-30
-end_date: 2026-02-22
+name: Full
+start_date: 2026-01-30T00:00:00-05:00
+end_date: 2026-02-22T00:00:00-05:00
 scoring_floor: 0
-ladder_point_scalar: 3.0
+ladder_point_exponent: 3.0
+ladder_point_divisor: 100000
 num_scores_to_count: 20
 overall_results_sheet_name: Full Overall Results
 score_details_sheet_name: Full Score Details
-restrict_to_difficulty_name: full
+restrict_to_difficulties: 
+  - full
+  - full2
+cleared_only: True

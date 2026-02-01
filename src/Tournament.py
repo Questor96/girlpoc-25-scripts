@@ -1,11 +1,14 @@
 from datetime import datetime
+from typing import Any
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 from src.Chart import Chart
 from src.Entrant import Entrant
 from src.Song import Song
 from src.ScoreFetcher import ScoreFetcher
 from src.Eligibility import EligibilityConfig, Eligibility
+from src.helpers import load_config_file
 
 from gspread.spreadsheet import Spreadsheet
 from gspread.worksheet import Worksheet
@@ -73,24 +76,67 @@ class LadderTournament(Tournament):
         name: str,
         start_date: datetime,
         end_date: datetime,
-        scoring_floor: int = 0,
-        ladder_point_scalar: float = 2.0,
-        num_scores_to_count: int = 20,
-        overall_results_sheet_name: str = "Overall Results",
-        score_details_sheet_name: str = "Score Details",
-        restrict_to_difficulty_name: str | None = None,
+        scoring_floor: int | None = None,
+        ladder_point_exponent: float | None = None,
+        ladder_point_divisor: float | None = None,
+        num_scores_to_count: int | None = None,
+        overall_results_sheet_name: str | None = None,
+        score_details_sheet_name: str | None = None,
+        restrict_to_difficulties: str | list[str] | None = None,
+        cleared_only: bool | None = None,
     ):
-        self.scoring_floor = scoring_floor
-        self.ladder_point_scalar = ladder_point_scalar
-        self.num_scores_to_count = num_scores_to_count
-        self.overall_results_sheet_name = overall_results_sheet_name
-        self.score_details_sheet_name = score_details_sheet_name
-        self.restrict_to_difficulty_name = restrict_to_difficulty_name
+        self.scoring_floor = scoring_floor if scoring_floor else 0
+        self.ladder_point_exponent = ladder_point_exponent if ladder_point_exponent else 2.0
+        self.ladder_point_divisor = ladder_point_divisor if ladder_point_divisor else 1000.0
+        self.num_scores_to_count = num_scores_to_count if num_scores_to_count else 20
+        self.overall_results_sheet_name = (
+            overall_results_sheet_name if overall_results_sheet_name else "Overall Results"
+        )
+        self.score_details_sheet_name = (
+            score_details_sheet_name if score_details_sheet_name else "Score Details"
+        )
+        self.restrict_to_difficulties = restrict_to_difficulties  # default value of None is fine
+        self.cleared_only = cleared_only if cleared_only else False
+        
         super().__init__(
             name=name,
             start_date=start_date,
             end_date=end_date,
         )
+
+    @classmethod
+    def from_config_file(
+        cls,
+        config_filepath: Path,
+        entrant_filepath: Path,
+    ) -> "LadderTournament":
+        """
+        Create a LadderTournament from config files, and loads entrants
+
+        :param config_filepath: Path to tournament configuration (.json or .yaml)
+        :type config_filepath: Path
+        :param entrant_filepath: Path to entrant list (as .json or .yaml)
+        :type entrant_filepath: Path
+        :return: Configured LadderTournament, ready to run
+        :rtype: LadderTournament
+        """
+        config: dict[str, Any] = load_config_file(config_filepath)
+        tournament = cls(
+            name=config["name"],
+            start_date=config["start_date"],
+            end_date=config["end_date"],
+            scoring_floor=config.get("scoring_floor"),
+            ladder_point_exponent=config.get("ladder_point_exponent"),
+            ladder_point_divisor=config.get("ladder_point_divisor"),
+            num_scores_to_count=config.get("num_scores_to_count"),
+            overall_results_sheet_name=config.get("overall_results_sheet_name"),
+            score_details_sheet_name=config.get("score_details_sheet_name"),
+            restrict_to_difficulties=config.get("restrict_to_difficulties"),
+            cleared_only=config.get("cleared_only"),
+        )
+        entrants: list[str] = load_config_file(entrant_filepath)
+        tournament.load_entrants(entrants)
+        return tournament
 
     # Implement abstract methods
     def get_all_scores(self):
@@ -105,10 +151,11 @@ class LadderTournament(Tournament):
                 entrant_name=entrant.name,
                 start=self.start_date,
                 end=self.end_date,
-                difficulty_name=self.restrict_to_difficulty_name,
+                difficulty_names=self.restrict_to_difficulties,
+                get_cleared_only=self.cleared_only,
                 get_max_only=True,
             ))
-        results = sf.exec_load_entrant_scores(searches)
+        results = sf.execute_coroutines(searches)
         for index in range(len(self.entrants)):
             entrant = self.entrants[index]
             entrant.set_scores(results[index])
@@ -130,7 +177,8 @@ class LadderTournament(Tournament):
                 entrant.scores,
                 key=lambda x: x.ladder_points(
                     score_floor=self.scoring_floor,
-                    difficulty_scaling=self.ladder_point_scalar,
+                    difficulty_scaling=self.ladder_point_exponent,
+                    divisor=self.ladder_point_divisor,
                 ),
                 reverse=True,
             )
@@ -179,7 +227,8 @@ class LadderTournament(Tournament):
             for score in entrant.scores[ : self.num_scores_to_count]:
                 total_ladder_points += round(score.ladder_points(
                     score_floor=self.scoring_floor,
-                    difficulty_scaling=self.ladder_point_scalar,
+                    difficulty_scaling=self.ladder_point_exponent,
+                    divisor=self.ladder_point_divisor
                 ), 2)
             overall_results.append((total_ladder_points, entrant))
         overall_results = sorted(
@@ -217,7 +266,8 @@ class LadderTournament(Tournament):
                 col += 1
                 ladder_points = round(score.ladder_points(
                     score_floor=self.scoring_floor,
-                    difficulty_scaling=self.ladder_point_scalar,
+                    difficulty_scaling=self.ladder_point_exponent,
+                    divisor=self.ladder_point_divisor,
                 ), 2)
                 cells.append(Cell(row, col, score.song.title))
                 col += 1
@@ -286,13 +336,53 @@ class GauntletTournament(Tournament):
         )
         self.attempts_to_count = attempts_to_count
         self.ineligible_requirements = ineligible_requirements
-    
+
+    @classmethod
+    def from_config_file(
+        cls,
+        config_filepath: Path,
+        entrant_filepath: Path,
+    ) -> "GauntletTournament":
+        # Load base config
+        base_dict: dict = load_config_file(config_filepath)
+        config: dict = base_dict["config"]
+        
+        # build eligibility details
+        disqualify_if = config.get("disqualify_if")
+        if disqualify_if:
+            eligibility_config = [
+                EligibilityConfig(
+                    score=requirement["score_gte"],
+                    difficulty=requirement["difficulty"],
+                    count=requirement["count"],
+                )
+                for requirement in disqualify_if
+            ]
+        else:
+            eligibility_config = None
+
+        tournament = GauntletTournament(
+            name=config.get("name", "unknown tournament"),
+            start_date=datetime.fromisoformat(str(config["start_date"])),
+            end_date=datetime.fromisoformat(str(config["end_date"])),
+            attempts_to_count=config["attempts_to_count"],
+            ineligible_requirements=eligibility_config,
+        )
+
+        # do chart and entrant initialization
+        charts: list[dict] = base_dict["charts"]
+        tournament.filter_songs_and_charts(charts)
+        entrants: list = load_config_file(entrant_filepath)
+        tournament.load_entrants(entrants)
+        return tournament
+
     @property
     def chart_ids(self):
         return [chart.id for chart in self.charts]
 
     # Implement abstract methods
     def load_entrants(self, entrant_names):
+        print(f"loading entrants for tournament {self.name}")
         if not self.ineligible_requirements:  # shortcircuit if we don't need to check eligibility
             super().load_entrants(entrant_names=entrant_names)
             return
@@ -310,11 +400,12 @@ class GauntletTournament(Tournament):
                     difficulty=list(range(requirement.difficulty, self.max_difficulty)),
                     score_gte=requirement.score,
                     end=self.start_date,  # only disqualify based on scores beforehand
+                    get_max_only=True,
                     take=requirement.count,
                 ))
                 name_to_result_map[name].append({"index": result_index, "requirement": requirement})
                 result_index += 1
-        results = sf.exec_load_entrant_scores(searches)
+        results = sf.execute_coroutines(searches)
         for name, result_info in name_to_result_map.items():
             player_eligibilities = []
             element: dict
@@ -352,7 +443,7 @@ class GauntletTournament(Tournament):
                 sort_field="created_at",
                 order="asc"
             ))
-        results = sf.exec_load_entrant_scores(searches)
+        results = sf.execute_coroutines(searches)
         for index in range(len(self.entrants)):
             entrant = self.entrants[index]
             result = results[index]
@@ -438,3 +529,58 @@ class GauntletTournament(Tournament):
             else:
                 cells.append(Cell(row, col, str(any_score[0].score)))
         worksheet.update_cells(cells)
+
+
+
+
+# print info about multiple tournament eligibilities
+def make_eligibility_spreadsheet_for_gauntlet_tournaments(
+    result_spreadsheet: Spreadsheet,
+    tournaments: list[Tournament],
+    worksheet_name: str = "Bracket Eligibility",
+):
+    worksheet = result_spreadsheet.worksheet(worksheet_name)
+    cells = []
+    col = 1
+    row = 2
+    for entrant in tournaments[0].entrants:  # player names
+        cells.append(Cell(row, col, entrant.name))
+        row += 1
+    col = 2
+    for tournament in tournaments:  # tournament eligibilities
+        row = 1
+        cells.append(Cell(row, col, tournament.name))
+        row += 1
+        for entrant in tournament.entrants:
+            cells.append(Cell(row, col, str(entrant.can_compete)))
+            row += 1
+        col += 1
+    worksheet.update_cells(cells)
+    
+    # conditional formatting
+    red_rule = gsf.ConditionalFormatRule(
+        ranges=[gsf.GridRange.from_a1_range('A1:F2000', worksheet)],
+        booleanRule=gsf.BooleanRule(
+            condition=gsf.BooleanCondition('TEXT_EQ', [str(False)]),
+            format=gsf.CellFormat(
+                textFormat=gsf.TextFormat(bold=True),
+                backgroundColor=gsf.Color.fromHex("#e67c73")
+            ),
+        ),
+    )
+    green_rule = gsf.ConditionalFormatRule(
+        ranges=[gsf.GridRange.from_a1_range('A1:F2000', worksheet)],
+        booleanRule=gsf.BooleanRule(
+            condition=gsf.BooleanCondition('TEXT_EQ', [str(True)]),
+            format=gsf.CellFormat(
+                textFormat=gsf.TextFormat(bold=True),
+                backgroundColor=gsf.Color.fromHex("#57bb8a"),
+            ),
+        ),
+    )
+    rules = gsf.get_conditional_format_rules(worksheet)
+    rules.clear()
+    rules.append(red_rule)
+    rules.append(green_rule)
+    rules.save()
+    gsf.set_frozen(worksheet, rows=1, cols=1)

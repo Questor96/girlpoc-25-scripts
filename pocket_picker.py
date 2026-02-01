@@ -29,13 +29,13 @@ if __name__ == '__main__':
             entrant_name=entrant,
             start=config["start"],
             difficulty=config["difficulty"],
-            difficulty_name=config["difficulty_name"],
+            difficulty_names=config["difficulty_name"],
             sort_field="created_at",
             order="asc",
         )
         for entrant in entrants
     ]
-    results = sf.exec_load_entrant_scores(requests)
+    results = sf.execute_coroutines(requests)
 
     with open('test_results.json', 'w') as out_file:
         json.dump(results,out_file)

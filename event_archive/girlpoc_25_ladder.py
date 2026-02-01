@@ -22,7 +22,7 @@ if __name__ == "__main__":
         start_date=config["start_date"],
         end_date=config["end_date"],
         scoring_floor=config["scoring_floor"],
-        ladder_point_scalar=config["ladder_point_scalar"],
+        ladder_point_exponent=config["ladder_point_exponent"],
         num_scores_to_count=config["num_scores_to_count"],
     )
     lt.load_entrants(entrants)

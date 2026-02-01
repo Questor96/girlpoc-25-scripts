@@ -11,20 +11,20 @@ class Entrant:
     def scores(self) -> list[Score]:
         return self._scores
 
-    def set_scores(self, scores: list[Score]):
-        self._scores = scores
-
     @property
     def can_compete(self) -> bool:
         return all([eligibility.eligible for eligibility in self.eligiblities])
     
     @property
     def has_scores(self) -> bool:
-        nonzero_scores = len([
+        nonzero_scores = [
             score for score in self.scores
             if score.score > 0
-        ])
-        return nonzero_scores > 0
+        ]
+        return len(nonzero_scores) > 0
+
+    def set_scores(self, scores: list[Score]):
+        self._scores = scores
 
     def maximize_scores(self):
         unique_chart_ids = {score.chart._id for score in self.scores}
@@ -33,7 +33,7 @@ class Entrant:
             max_score_for_chart = self._maximize_score_for_chart(chart_id)
             if max_score_for_chart:
                 maximized_scores.append(max_score_for_chart)
-        self._scores = maximized_scores
+        self.set_scores(maximized_scores)
 
     def _maximize_score_for_chart(self, chart_id: int) -> Score | None:
         max_score = None
